@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("WatsonMesh")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Mesh Networking Library in C#")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Joel Christner")]
 [assembly: AssemblyProduct("WatsonMesh")]
-[assembly: AssemblyCopyright("Copyright ©  2018")]
+[assembly: AssemblyCopyright("(c) 2018 Joel Christner")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
