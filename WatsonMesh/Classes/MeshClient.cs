@@ -174,10 +174,8 @@ namespace Watson
         }
 
         private bool _ServerMessageReceived(byte[] data)
-        {
-            Message currMsg = Common.DeserializeJson<Message>(data);
-            Debug.WriteLine("Message from " + Peer.ToString() + ": " + currMsg.Data.Length + " bytes");
-            if (ServerMessageReceived != null) return ServerMessageReceived(Peer, currMsg.Data);
+        { 
+            if (ServerMessageReceived != null) return ServerMessageReceived(Peer, data);
             else return true;
         }
 

@@ -55,6 +55,8 @@ namespace Watson
                 Console.WriteLine("Exception while deserializing:");
                 Console.WriteLine(json);
                 Console.WriteLine("");
+                Console.WriteLine(SerializeJson(e, true));
+                Console.WriteLine("");
                 throw e;
             }
         }

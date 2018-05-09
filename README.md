@@ -17,7 +17,7 @@ Send a message to a peer using ```Send(string ip, int port, byte[] data)``` or b
 Under the hood, ```WatsonMesh``` relies on ```WatsonTcp``` (see https://github.com/jchristn/WatsonTcp).
 
 ## New in This Version
-- Initial release
+- Sync message API (awaits and returns response within specified timeout)
 
 ## Roadmap
 The main gap in this release is the lack of a state machine to manage sharing of configuration and authentication amongst nodes.  However, authentication is less necessary when using SSL with certificate files.
@@ -38,17 +38,21 @@ WatsonMesh mesh = new WatsonMesh(settings, self);
 // define callback methods
 mesh.PeerConnected = PeerConnected;
 mesh.PeerDisconnected = PeerDisconnected;
-mesh.MessageReceived = MessageReceived;
+mesh.AsyncMessageReceived = AsyncMessageReceived;
+mesh.SyncMessageReceived = SyncMessageReceived;
 
 // add and remove peers (remote servers in the mesh network)
 mesh.Add("127.0.0.1", 8001, false);
 mesh.Add("127.0.0.1", 8002, false);
+mesh.Add("127.0.0.1", 8003, false);
 mesh.Remove("127.0.0.1", 8003);
 
 // send messages
 byte[] data = Encoding.UTF8.GetBytes("Hello from Watson Mesh!");
-mesh.Send("127.0.0.1", 8001, data);
-mesh.Broadcast(data);
+if (!mesh.SendAsync("127.0.0.1", 8001, data)) { // handle errors }
+if (!mesh.Broadcast(data)) { // handle errors }
+byte[] response;
+if (!mesh.SendSync("127.0.0.1", 8001, 5000, data, out response)) { // handle errors }
 
 // callbacks
 bool PeerConnected(Peer peer) {
@@ -59,9 +63,14 @@ bool PeerDisconnected(Peer peer) {
     Console.WriteLine("Peer " + peer.ToString() + " disconnected!");
     return true;
 }
-bool MessageReceived(Peer peer, byte[] data) {
+bool AsyncMessageReceived(Peer peer, byte[] data) {
     Console.WriteLine(peer.ToString() + " says: " + Encoding.UTF8.GetString(data));
     return true;
+}
+byte[] SyncMessageReceived(Peer peer, byte[] data) {
+	  Console.WriteLine(peer.ToString() + " says: " + Encoding.UTF8.GetString(data));
+	  Console.Write("Type your response: ");
+	  return Encoding.UTF8.GetBytes(Console.ReadLine());
 }
 ```
 

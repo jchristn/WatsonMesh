@@ -28,7 +28,8 @@ namespace Test
             _Mesh = new WatsonMesh(_Settings, _Self);
             _Mesh.PeerConnected = PeerConnected;
             _Mesh.PeerDisconnected = PeerDisconnected;
-            _Mesh.MessageReceived = MessageReceived;
+            _Mesh.AsyncMessageReceived = AsyncMessageReceived;
+            _Mesh.SyncMessageReceived = SyncMessageReceived;
 
             _Mesh.StartServer();
 
@@ -75,8 +76,8 @@ namespace Test
                             Console.WriteLine("None");
                         }
                         break;
-                    case "send":
-                        if (_Mesh.Send(
+                    case "sendasync":
+                        if (_Mesh.SendAsync(
                             Common.InputString("Peer IP", "127.0.0.1", false),
                             Common.InputInteger("Peer port:", 8000, true, false),
                             Encoding.UTF8.GetBytes(Common.InputString("Data:", "some data", false))))
@@ -87,6 +88,30 @@ namespace Test
                         {
                             Console.WriteLine("Failed");
                         }
+                        break;
+                    case "sendsync":
+                        byte[] responseData = null;
+                        if (_Mesh.SendSync(
+                            Common.InputString("Peer IP", "127.0.0.1", false),
+                            Common.InputInteger("Peer port:", 8000, true, false),
+                            Common.InputInteger("Timeout ms:", 5000, true, false),
+                            Encoding.UTF8.GetBytes(Common.InputString("Data:", "some data", false)),
+                            out responseData))
+                        {
+                            Console.WriteLine("Success");
+                            if (responseData != null && responseData.Length > 0)
+                            {
+                                Console.WriteLine("Response: " + Encoding.UTF8.GetString(responseData));
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Failed");
+                        }
+                        break;
+                    case "synccount":
+                        Console.WriteLine("Pending sync requests  : " + _Mesh.SyncRequests.Count);
+                        Console.WriteLine("Pending sync responses : " + _Mesh.SyncResponses.Count);
                         break;
                     case "bcast":
                         if (_Mesh.Broadcast(
@@ -123,16 +148,18 @@ namespace Test
         static void Menu()
         {
             Console.WriteLine("Available commands:");
-            Console.WriteLine("  ?        help, this menu");
-            Console.WriteLine("  cls      clear the screen");
-            Console.WriteLine("  q        quit the application");
-            Console.WriteLine("  list     list all peers");
-            Console.WriteLine("  failed   list failed peers");
-            Console.WriteLine("  add      add a peer");
-            Console.WriteLine("  del      delete a peer");
-            Console.WriteLine("  send     send a message to a peer");
-            Console.WriteLine("  bcast    send a message to all peers");
-            Console.WriteLine("  health   display if the mesh is healthy");
+            Console.WriteLine("  ?          help, this menu");
+            Console.WriteLine("  cls        clear the screen");
+            Console.WriteLine("  q          quit the application");
+            Console.WriteLine("  list       list all peers");
+            Console.WriteLine("  failed     list failed peers");
+            Console.WriteLine("  add        add a peer");
+            Console.WriteLine("  del        delete a peer");
+            Console.WriteLine("  sendasync  send a message to a peer asynchronously");
+            Console.WriteLine("  sendsync   send a message to a peer and await a response");
+            Console.WriteLine("  synccount  number of sync requests and responses pending");
+            Console.WriteLine("  bcast      send a message to all peers");
+            Console.WriteLine("  health     display if the mesh is healthy");
         }
 
         static bool PeerConnected(Peer peer)
@@ -147,10 +174,17 @@ namespace Test
             return true;
         }
 
-        static bool MessageReceived(Peer peer, byte[] data)
+        static bool AsyncMessageReceived(Peer peer, byte[] data)
         {
             Console.WriteLine(peer.ToString() + ": " + Encoding.UTF8.GetString(data));
             return true;
+        }
+
+        static byte[] SyncMessageReceived(Peer peer, byte[] data)
+        {
+            Console.WriteLine(peer.ToString() + ": " + Encoding.UTF8.GetString(data));
+            string resp = Common.InputString("Response:", "This is a response", false);
+            return Encoding.UTF8.GetBytes(resp);
         }
     }
 }
