@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Watson
 {
+    /// <summary>
+    /// Settings for the mesh network.
+    /// </summary>
     public class MeshSettings
     {
         /// <summary>
@@ -38,6 +41,9 @@ namespace Watson
         /// </summary>
         public bool DebugNetworking { get; set; }
          
+        /// <summary>
+        /// Instantiate the object.
+        /// </summary>
         public MeshSettings()
         {
             AutomaticReconnect = true;

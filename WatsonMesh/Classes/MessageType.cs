@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Watson
 {
+    /// <summary>
+    /// The type of message.
+    /// </summary>
     public enum MessageType
     {
         Data,

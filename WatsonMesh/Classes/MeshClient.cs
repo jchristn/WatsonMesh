@@ -46,7 +46,7 @@ namespace Watson
         #endregion
 
         #region Constructors-and-Factories
-
+        
         public MeshClient(MeshSettings settings, Peer peer)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
