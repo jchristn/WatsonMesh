@@ -400,7 +400,7 @@ namespace Watson
             {
                 if (SyncMessageReceived != null)
                 {
-                    byte[] responseData = SyncMessageReceived(peer, data);
+                    byte[] responseData = SyncMessageReceived(peer, currMsg.Data);
                     Message responseMsg = new Message(_Self.Ip, _Self.Port, peer.Ip, peer.Port, currMsg.TimeoutMs, false, true, currMsg.Type, responseData);
                     responseMsg.Id = currMsg.Id;
                     MeshClient currClient = GetMeshClientByIpPort(peer.Ip, peer.Port);
@@ -454,7 +454,7 @@ namespace Watson
             { 
                 if (SyncMessageReceived != null)
                 {
-                    byte[] responseData = SyncMessageReceived(currPeer, data);
+                    byte[] responseData = SyncMessageReceived(currPeer, currMsg.Data);
                     Message responseMsg = new Message(_Self.Ip, _Self.Port, currPeer.Ip, currPeer.Port, currMsg.TimeoutMs, false, true, currMsg.Type, responseData);
                     responseMsg.Id = currMsg.Id;
                     MeshClient currClient = GetMeshClientByIpPort(currPeer.Ip, currPeer.Port);
