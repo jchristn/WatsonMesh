@@ -129,6 +129,22 @@ namespace Watson
         }
 
         /// <summary>
+        /// Check if a specific remote server connection is alive.
+        /// </summary>
+        /// <param name="ip">Peer IP address.</param>
+        /// <param name="port">Peer port number.</param>
+        /// <returns>True if healthy.</returns>
+        public bool IsHealthy(string ip, int port)
+        {
+            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (port < 0) throw new ArgumentException("Port must be zero or greater.");
+
+            MeshClient currClient = GetMeshClientByIpPort(ip, port);
+            if (currClient == null) return false;
+            return currClient.IsConnected();
+        }
+
+        /// <summary>
         /// Add a peer to the network.
         /// </summary>
         /// <param name="peer">Peer.</param>

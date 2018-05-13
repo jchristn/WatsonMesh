@@ -141,6 +141,12 @@ namespace Test
                     case "health":
                         Console.WriteLine("Healthy: " + _Mesh.IsHealthy());
                         break;
+                    case "nodehealth":
+                        Console.WriteLine(
+                            _Mesh.IsHealthy(
+                                Common.InputString("Peer IP:", "127.0.0.1", false),
+                                Common.InputInteger("Peer port:", 8000, true, false)));
+                        break;
                 }
             }
         }
@@ -148,18 +154,19 @@ namespace Test
         static void Menu()
         {
             Console.WriteLine("Available commands:");
-            Console.WriteLine("  ?          help, this menu");
-            Console.WriteLine("  cls        clear the screen");
-            Console.WriteLine("  q          quit the application");
-            Console.WriteLine("  list       list all peers");
-            Console.WriteLine("  failed     list failed peers");
-            Console.WriteLine("  add        add a peer");
-            Console.WriteLine("  del        delete a peer");
-            Console.WriteLine("  sendasync  send a message to a peer asynchronously");
-            Console.WriteLine("  sendsync   send a message to a peer and await a response");
-            Console.WriteLine("  synccount  number of sync requests and responses pending");
-            Console.WriteLine("  bcast      send a message to all peers");
-            Console.WriteLine("  health     display if the mesh is healthy");
+            Console.WriteLine("  ?           help, this menu");
+            Console.WriteLine("  cls         clear the screen");
+            Console.WriteLine("  q           quit the application");
+            Console.WriteLine("  list        list all peers");
+            Console.WriteLine("  failed      list failed peers");
+            Console.WriteLine("  add         add a peer");
+            Console.WriteLine("  del         delete a peer");
+            Console.WriteLine("  sendasync   send a message to a peer asynchronously");
+            Console.WriteLine("  sendsync    send a message to a peer and await a response");
+            Console.WriteLine("  synccount   number of sync requests and responses pending");
+            Console.WriteLine("  bcast       send a message to all peers");
+            Console.WriteLine("  health      display if the mesh is healthy");
+            Console.WriteLine("  nodehealth  display if a connection to a peer is healthy");
         }
 
         static bool PeerConnected(Peer peer)
