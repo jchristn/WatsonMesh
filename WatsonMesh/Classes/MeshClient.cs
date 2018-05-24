@@ -74,31 +74,40 @@ namespace Watson
         /// </summary>
         public void Connect()
         {
-            if (Peer.Ssl)
+            try
             {
-                _TcpClient = null;
-                _TcpSslClient = new WatsonTcpSslClient(
-                    Peer.Ip,
-                    Peer.Port,
-                    Peer.PfxCertificateFile,
-                    Peer.PfxCertificatePassword,
-                    _Settings.AcceptInvalidCertificates,
-                    _Settings.SslMutualAuthentication,
-                    _ServerConnected,
-                    _ServerDisconnected,
-                    _ServerMessageReceived,
-                    _Settings.DebugNetworking);
+                if (Peer.Ssl)
+                {
+                    _TcpClient = null;
+                    _TcpSslClient = new WatsonTcpSslClient(
+                        Peer.Ip,
+                        Peer.Port,
+                        Peer.PfxCertificateFile,
+                        Peer.PfxCertificatePassword,
+                        _Settings.AcceptInvalidCertificates,
+                        _Settings.SslMutualAuthentication,
+                        _ServerConnected,
+                        _ServerDisconnected,
+                        _ServerMessageReceived,
+                        _Settings.DebugNetworking);
+                }
+                else
+                {
+                    _TcpSslClient = null;
+                    _TcpClient = new WatsonTcpClient(
+                        Peer.Ip,
+                        Peer.Port,
+                        _ServerConnected,
+                        _ServerDisconnected,
+                        _ServerMessageReceived,
+                        _Settings.DebugNetworking);
+                }
             }
-            else
+            catch (Exception e)
             {
-                _TcpSslClient = null;
-                _TcpClient = new WatsonTcpClient(
-                    Peer.Ip,
-                    Peer.Port,
-                    _ServerConnected,
-                    _ServerDisconnected,
-                    _ServerMessageReceived,
-                    _Settings.DebugNetworking);
+                Debug.WriteLine("Unable to connect to peer " + Peer.ToString() + " due to exception: " + e.ToString());
+
+                Task.Run(() => ReconnectToServer());
             }
         }
 
