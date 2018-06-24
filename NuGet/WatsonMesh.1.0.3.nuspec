@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>WatsonMesh</id>
+    <version>1.0.3</version>
+    <title>WatsonMesh</title>
+    <authors>jchristn</authors>
+    <owners>jchristn</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <licenseUrl>https://github.com/jchristn/WatsonMesh/blob/master/LICENSE.TXT</licenseUrl>
+    <projectUrl>https://github.com/jchristn/WatsonMesh</projectUrl>
+    <description>A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.</description>
+    <summary>A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.</summary>
+    <releaseNotes>Added WarningMessage function, useful to send internal warning messages back to consuming applications for debug purposes.</releaseNotes>
+    <copyright>(c)2018 Joel Christner</copyright>
+    <tags>mesh networking tcp ssl network framing distributed</tags>
+    <dependencies>
+      <dependency id="Newtonsoft.Json" version="11.0.0" />
+      <dependency id="WatsonTcp" version="1.1.6" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="WatsonMesh.dll" target="WatsonMesh.dll" />
+    <file src="WatsonMesh.pdb" target="WatsonMesh.pdb" />
+  </files>
+</package>

@@ -17,7 +17,7 @@ Send a message to a peer using ```Send(string ip, int port, byte[] data)``` or b
 Under the hood, ```WatsonMesh``` relies on ```WatsonTcp``` (see https://github.com/jchristn/WatsonTcp).
 
 ## New in This Version
-- Sync message API (awaits and returns response within specified timeout)
+- WarningMessage function, which can be useful for sending warning messages to the consuming application.  Useful for debugging issues in particular with synchronous messaging.
 
 ## Roadmap
 The main gap in this release is the lack of a state machine to manage sharing of configuration and authentication amongst nodes.  However, authentication is less necessary when using SSL with certificate files.
@@ -87,3 +87,4 @@ mono --server myapp.exe
 Release content from previous versions will be shown here.
 v1.0.x
 - Initial release
+- Sync message API (awaits and returns response within specified timeout)

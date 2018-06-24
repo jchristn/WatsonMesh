@@ -47,6 +47,11 @@ namespace Watson
         /// </summary>
         public ConcurrentDictionary<string, Tuple<Message, DateTime>> SyncResponses { get; private set; }
 
+        /// <summary>
+        /// Function to call when an issue is encountered internally and a warning message needs to be consumed by the calling application.
+        /// </summary>
+        public Func<string, bool> WarningMessage { get; set; }
+
         #endregion
 
         #region Private-Members
@@ -93,6 +98,8 @@ namespace Watson
             _Timer.Elapsed += new ElapsedEventHandler(CleanupThread);
             _Timer.Interval = 5000;
             _Timer.Enabled = true;
+
+            WarningMessage = null;
         }
 
         #endregion
@@ -109,6 +116,8 @@ namespace Watson
             _Server.ClientDisconnected = ClientDisconnected;
             _Server.ClientMessageReceived = ClientMessageReceived;
             _Server.StartServer();
+
+            WarningMessage?.Invoke("[WatsonMesh] Starting server");
         }
 
         /// <summary>
@@ -140,7 +149,11 @@ namespace Watson
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
             MeshClient currClient = GetMeshClientByIpPort(ip, port);
-            if (currClient == null) return false;
+            if (currClient == null)
+            {
+                WarningMessage?.Invoke("[WatsonMesh] IsHealthy unknown client " + ip + ":" + port);
+                return false;
+            }
             return currClient.IsConnected();
         }
 
@@ -290,6 +303,7 @@ namespace Watson
             if (currClient == null || currClient == default(MeshClient))
             {
                 Debug.WriteLine("Unable to find peer: " + ip + ":" + port);
+                WarningMessage?.Invoke("[WatsonMesh] SendAsync unable to find peer " + ip + ":" + port);
                 return false;
             }
 
@@ -327,6 +341,7 @@ namespace Watson
             if (currClient == null || currClient == default(MeshClient))
             {
                 Debug.WriteLine("Unable to find peer: " + ip + ":" + port);
+                WarningMessage?.Invoke("[WatsonMesh] SendSync unable to find peer " + ip + ":" + port);
                 return false;
             }
 
@@ -369,6 +384,7 @@ namespace Watson
                 if (curr == null || curr == default(Peer))
                 {
                     Debug.WriteLine("Unable to find peer: " + ip + ":" + port);
+                    WarningMessage?.Invoke("[WatsonMesh] GetPeerByIpPort unable to find peer " + ip + ":" + port);
                     return null;
                 }
 
@@ -387,6 +403,7 @@ namespace Watson
                 if (currClient == null || currClient == default(MeshClient))
                 {
                     Debug.WriteLine("Unable to find peer: " + ip + ":" + port);
+                    WarningMessage?.Invoke("[WatsonMesh] GetMeshClientByIpPort unable to find peer " + ip + ":" + port);
                     return null;
                 }
 
@@ -463,6 +480,7 @@ namespace Watson
             if (currPeer == null || currPeer == default(Peer))
             {
                 Debug.WriteLine("Unsolicted client message received from: " + currMsg.SourceIp + ":" + currMsg.SourcePort);
+                WarningMessage?.Invoke("[WatsonMesh] ClientMessageReceived discarding unsolicted message from " + currMsg.SourceIp + ":" + currMsg.SourcePort);
                 return false;
             }
              
@@ -503,6 +521,7 @@ namespace Watson
                 if (curr == null || curr == default(Peer))
                 {
                     Debug.WriteLine("PeerFromIpPort could not find peer " + ipPort);
+                    WarningMessage?.Invoke("[WatsonMesh] PeerFromIpPort unable to find peer " + ipPort);
                     return null;
                 }
                 return curr;
@@ -533,7 +552,7 @@ namespace Watson
             lock (_ClientsLock)
             {
                 foreach (MeshClient currClient in _Clients)
-                {
+                { 
                     success = success && currClient.Send(msgData).Result;
                 }
             }
@@ -552,12 +571,14 @@ namespace Watson
                 if (!AddSyncRequest(msg.Id, timeoutMs))
                 {
                     Debug.WriteLine("Unable to add sync request");
+                    WarningMessage?.Invoke("[WatsonMesh] SendSyncRequestInternal unable to add sync request for message to " + msg.DestinationIp + ":" + msg.DestinationPort);
                     return false;
                 }
 
                 if (!client.Send(msgData).Result)
                 {
                     Debug.WriteLine("Unable to send to peer");
+                    WarningMessage?.Invoke("[WatsonMesh] SendSyncRequestInternal unable to send message to " + msg.DestinationIp + ":" + msg.DestinationPort);
                     return false;
                 }
 
@@ -568,6 +589,7 @@ namespace Watson
                 }
                 else
                 {
+                    WarningMessage?.Invoke("[WatsonMesh] SendSyncRequestInternal unable to retrieve response from " + msg.DestinationIp + ":" + msg.DestinationPort);
                     Debug.WriteLine("Unable to retrieve sync response for msg ID " + msg.Id);
                 }
 
@@ -610,6 +632,7 @@ namespace Watson
                     Tuple<Message, DateTime> respTuple = null;
                     if (!SyncResponses.TryGetValue(id, out respTuple))
                     {
+                        WarningMessage?.Invoke("[WatsonMesh] GetSyncResponse unable to get data for ID " + id);
                         return false;
                     }
 
@@ -619,6 +642,7 @@ namespace Watson
                     if (DateTime.Now > expiration)
                     {
                         Debug.WriteLine("Response expired");
+                        WarningMessage?.Invoke("[WatsonMesh] GetSyncResponse response expired for ID " + id);
                         return false;
                     }
 
@@ -639,6 +663,7 @@ namespace Watson
                 {
                     response = null;
                     Debug.WriteLine("Timeout exceeded");
+                    WarningMessage?.Invoke("[WatsonMesh] GetSyncResponse timeout exceeded for ID " + id);
                     return false;
                 }
 
@@ -655,6 +680,7 @@ namespace Watson
                 {
                     DateTime ts;
                     Debug.WriteLine("Cleanup removing expired request ID " + curr.Key);
+                    WarningMessage?.Invoke("[WatsonMesh] CleanupThread removing expired request ID " + curr.Key);
                     SyncRequests.TryRemove(curr.Key, out ts);
                 }
             }
@@ -665,6 +691,7 @@ namespace Watson
                 {
                     Tuple<Message, DateTime> tuple;
                     Debug.WriteLine("Cleanup removing expired response ID " + curr.Key);
+                    WarningMessage?.Invoke("[WatsonMesh] CleanupThread removing expired response ID " + curr.Key);
                     SyncResponses.TryRemove(curr.Key, out tuple);
                 }
             }
