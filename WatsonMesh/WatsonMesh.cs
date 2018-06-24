@@ -626,12 +626,14 @@ namespace Watson
 
             int iterations = 0;
             while (true)
-            { 
+            {
+                Tuple<Message, DateTime> respTuple = null;
+
                 if (SyncResponses.ContainsKey(id))
                 {
-                    Tuple<Message, DateTime> respTuple = null;
                     if (!SyncResponses.TryGetValue(id, out respTuple))
                     {
+                        SyncResponses.TryRemove(id, out respTuple);
                         WarningMessage?.Invoke("[WatsonMesh] GetSyncResponse unable to get data for ID " + id);
                         return false;
                     }
@@ -641,6 +643,7 @@ namespace Watson
 
                     if (DateTime.Now > expiration)
                     {
+                        SyncResponses.TryRemove(id, out respTuple);
                         Debug.WriteLine("Response expired");
                         WarningMessage?.Invoke("[WatsonMesh] GetSyncResponse response expired for ID " + id);
                         return false;
@@ -654,6 +657,7 @@ namespace Watson
                         Buffer.BlockCopy(respMsg.Data, 0, response, 0, dataLen);
                     }
 
+                    SyncResponses.TryRemove(id, out respTuple);
                     return true;
                 }
 
@@ -662,6 +666,7 @@ namespace Watson
                 if (ts.TotalMilliseconds > timeoutMs)
                 {
                     response = null;
+                    SyncResponses.TryRemove(id, out respTuple);
                     Debug.WriteLine("Timeout exceeded");
                     WarningMessage?.Invoke("[WatsonMesh] GetSyncResponse timeout exceeded for ID " + id);
                     return false;
