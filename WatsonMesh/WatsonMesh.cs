@@ -184,7 +184,7 @@ namespace Watson
                 }
                 else
                 {
-                    MeshClient currClient = new MeshClient(_Settings, peer);
+                    MeshClient currClient = new MeshClient(_Settings, peer, WarningMessage);
                     currClient.ServerConnected = ServerConnected;
                     currClient.ServerDisconnected = ServerDisconnected;
                     currClient.ServerMessageReceived = ServerMessageReceived;

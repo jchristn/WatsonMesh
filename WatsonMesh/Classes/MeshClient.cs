@@ -43,16 +43,20 @@ namespace Watson
         private WatsonTcpClient _TcpClient;
         private WatsonTcpSslClient _TcpSslClient;
 
+        private Func<string, bool> _WarningMessage;
+
         #endregion
 
         #region Constructors-and-Factories
-        
-        public MeshClient(MeshSettings settings, Peer peer)
+
+        public MeshClient(MeshSettings settings, Peer peer, Func<string, bool> warningMessage)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
             if (peer == null) throw new ArgumentNullException(nameof(peer));
 
             _Settings = settings;
+            _WarningMessage = warningMessage;
+
             Peer = peer;
         }
 
@@ -74,31 +78,40 @@ namespace Watson
         /// </summary>
         public void Connect()
         {
-            if (Peer.Ssl)
+            try
             {
-                _TcpClient = null;
-                _TcpSslClient = new WatsonTcpSslClient(
-                    Peer.Ip,
-                    Peer.Port,
-                    Peer.PfxCertificateFile,
-                    Peer.PfxCertificatePassword,
-                    _Settings.AcceptInvalidCertificates,
-                    _Settings.SslMutualAuthentication,
-                    _ServerConnected,
-                    _ServerDisconnected,
-                    _ServerMessageReceived,
-                    _Settings.DebugNetworking);
+                if (Peer.Ssl)
+                {
+                    _TcpClient = null;
+                    _TcpSslClient = new WatsonTcpSslClient(
+                        Peer.Ip,
+                        Peer.Port,
+                        Peer.PfxCertificateFile,
+                        Peer.PfxCertificatePassword,
+                        _Settings.AcceptInvalidCertificates,
+                        _Settings.SslMutualAuthentication,
+                        _ServerConnected,
+                        _ServerDisconnected,
+                        _ServerMessageReceived,
+                        _Settings.DebugNetworking);
+                }
+                else
+                {
+                    _TcpSslClient = null;
+                    _TcpClient = new WatsonTcpClient(
+                        Peer.Ip,
+                        Peer.Port,
+                        _ServerConnected,
+                        _ServerDisconnected,
+                        _ServerMessageReceived,
+                        _Settings.DebugNetworking);
+                }
             }
-            else
+            catch (Exception e)
             {
-                _TcpSslClient = null;
-                _TcpClient = new WatsonTcpClient(
-                    Peer.Ip,
-                    Peer.Port,
-                    _ServerConnected,
-                    _ServerDisconnected,
-                    _ServerMessageReceived,
-                    _Settings.DebugNetworking);
+                Debug.WriteLine("Unable to connect to peer " + Peer.ToString() + " due to exception: " + e.ToString());
+                _WarningMessage?.Invoke("[MeshClient " + Peer.ToString() + "] Connect unable to connect"); 
+                Task.Run(() => ReconnectToServer());
             }
         }
 
@@ -129,10 +142,22 @@ namespace Watson
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
 
-            if (_TcpClient != null) return await _TcpClient.SendAsync(data);
-            else if (_TcpClient != null) return await _TcpSslClient.SendAsync(data);
+            bool success = false;
+            if (_TcpClient != null)
+            {
+                success = await _TcpClient.SendAsync(data);
+                if (!success) _WarningMessage?.Invoke("[MeshClient " + Peer.ToString() + "] Send null TcpClient object");
+                return success;
+            }
+            else if (_TcpSslClient != null)
+            {
+                success = await _TcpSslClient.SendAsync(data);
+                if (!success) _WarningMessage?.Invoke("[MeshClient " + Peer.ToString() + "] Send null TcpSslClient object"); 
+                return success;
+            }
 
             Debug.WriteLine("No connection to peer: " + Peer.ToString());
+            _WarningMessage?.Invoke("[MeshClient " + Peer.ToString() + "] Send no connection object present");
             return false;
         }
 

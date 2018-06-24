@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>WatsonMesh</id>
-    <version>1.0.3</version>
+    <version>1.0.5</version>
     <title>WatsonMesh</title>
     <authors>jchristn</authors>
     <owners>jchristn</owners>
@@ -11,11 +11,7 @@
     <projectUrl>https://github.com/jchristn/WatsonMesh</projectUrl>
     <description>A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.</description>
     <summary>A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.</summary>
-<<<<<<< HEAD
     <releaseNotes>Added WarningMessage function, useful to send internal warning messages back to consuming applications for debug purposes.</releaseNotes>
-=======
-    <releaseNotes>Fix for case when adding a peer that is not yet alive</releaseNotes>
->>>>>>> fcce6964e26c90429c683d4c457ff36afb28e10a
     <copyright>(c)2018 Joel Christner</copyright>
     <tags>mesh networking tcp ssl network framing distributed</tags>
     <dependencies>
@@ -24,12 +20,7 @@
     </dependencies>
   </metadata>
   <files>
-<<<<<<< HEAD
     <file src="WatsonMesh.dll" target="WatsonMesh.dll" />
     <file src="WatsonMesh.pdb" target="WatsonMesh.pdb" />
-=======
-    <file src="lib\WatsonMesh.dll" target="lib\WatsonMesh.dll" />
-    <file src="lib\WatsonMesh.pdb" target="lib\WatsonMesh.pdb" />
->>>>>>> fcce6964e26c90429c683d4c457ff36afb28e10a
   </files>
 </package>
