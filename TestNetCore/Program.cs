@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Watson;
 
-namespace Test
+namespace TestNetCore
 {
     class Program
     {
@@ -36,7 +36,7 @@ namespace Test
             while (_RunForever)
             {
                 string userInput = Common.InputString("WatsonMesh [? for help] >", null, false);
-                 
+
                 List<Peer> peers;
 
                 switch (userInput)
@@ -126,14 +126,14 @@ namespace Test
                         break;
                     case "add":
                         _Mesh.Add(
-                            new Peer( 
+                            new Peer(
                                 Common.InputString("Peer IP:", "127.0.0.1", false),
                                 Common.InputInteger("Peer port:", 8000, true, false),
                                 false));
                         break;
                     case "del":
                         _Mesh.Remove(
-                            new Peer( 
+                            new Peer(
                                 Common.InputString("Peer IP:", "127.0.0.1", false),
                                 Common.InputInteger("Peer port:", 8000, true, false),
                                 false));

@@ -50,7 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\WatsonMesh\WatsonMesh.csproj">
-      <Project>{65e38697-a5d5-4676-8541-f4af6e948e03}</Project>
+      <Project>{f458b6a2-292c-46db-80c6-aa5027127f13}</Project>
       <Name>WatsonMesh</Name>
     </ProjectReference>
   </ItemGroup>
