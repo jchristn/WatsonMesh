@@ -73,7 +73,7 @@ namespace Watson
         }
 
         /// <summary>
-        /// Instantiate the object.  Call 'Connect()' method after instantiating and assigning values.  This constructor does not support SSL certificate files or passwords.
+        /// Instantiate the object.  Call 'Connect()' method after instantiating and assigning values.  This constructor supports SSL, but does not support SSL certificate files or passwords.
         /// </summary> 
         /// <param name="ip">IP address of the peer.</param>
         /// <param name="port">Port number of the peer.</param>

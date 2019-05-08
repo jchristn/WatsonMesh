@@ -11,6 +11,13 @@ namespace Watson
     /// </summary>
     public class MeshSettings
     {
+        #region Public-Members
+
+        /// <summary>
+        /// Enable or disable console debugging.
+        /// </summary>
+        public bool Debug { get; set; }
+
         /// <summary>
         /// Indicate whether or not to automatically reconnect when a connection is severed.
         /// </summary>
@@ -24,8 +31,8 @@ namespace Watson
         /// <summary>
         /// Shared secret password to use to mutually authenticate mesh network members.
         /// </summary>
-        public string SharedSecret { get; set; }
-        
+        public string PresharedKey { get; set; }
+         
         /// <summary>
         /// Enable or disable acceptance of invalid or unverifiable SSL certificates.
         /// </summary>
@@ -34,24 +41,65 @@ namespace Watson
         /// <summary>
         /// Enable or disable mutual authentication when using SSL.
         /// </summary>
-        public bool SslMutualAuthentication { get; set; }
+        public bool MutuallyAuthenticate { get; set; }
+         
+        /// <summary>
+        /// Enable or disable reading of the data stream.
+        /// When enabled, use SyncMessageReceived and AsyncMessageReceived.
+        /// When disabled, use SyncStreamReceived and AsyncStreamReceived.
+        /// </summary>
+        public bool ReadDataStream { get; set; }
 
         /// <summary>
-        /// Enable or disable debugging for Watson networking operations.
+        /// Buffer size to use when reading input and output streams.  Default is 65536.
         /// </summary>
-        public bool DebugNetworking { get; set; }
-         
+        public int ReadStreamBufferSize
+        {
+            get
+            {
+                return _ReadStreamBufferSize;
+            }
+            set
+            {
+                if (value < 1) throw new ArgumentException("Read stream buffer size must be greater than zero.");
+                _ReadStreamBufferSize = value;
+            }
+        }
+
+        #endregion
+
+        #region Private-Members
+
+        private int _ReadStreamBufferSize = 65536;
+
+        #endregion
+
+        #region Constructors-and-Factories
+
         /// <summary>
         /// Instantiate the object.
         /// </summary>
         public MeshSettings()
         {
+            Debug = false;
             AutomaticReconnect = true;
             ReconnectIntervalMs = 1000;
-            SharedSecret = "default";
+            PresharedKey = "default"; 
             AcceptInvalidCertificates = true;
-            SslMutualAuthentication = false;
-            DebugNetworking = false;
+            MutuallyAuthenticate = false; 
+            ReadDataStream = true; 
+
+            _ReadStreamBufferSize = 65536;
         }
+
+        #endregion
+
+        #region Public-Methods
+
+        #endregion
+
+        #region Private-Methods
+
+        #endregion
     }
 }

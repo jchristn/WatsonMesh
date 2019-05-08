@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,15 +24,26 @@ namespace TestNetCore
             _Port = Common.InputInteger("Listener Port:", 8000, true, false);
 
             _Settings = new MeshSettings();
-            _Self = new Peer(_Ip, _Port, false);
+            _Settings.AcceptInvalidCertificates = true;
+            _Settings.AutomaticReconnect = true;
+            _Settings.Debug = false;
+            _Settings.MutuallyAuthenticate = false;
+            _Settings.PresharedKey = null;
+            _Settings.ReadDataStream = true;
+            _Settings.ReadStreamBufferSize = 65536;
+            _Settings.ReconnectIntervalMs = 1000;
+
+            _Self = new Peer(_Ip, _Port);
 
             _Mesh = new WatsonMesh(_Settings, _Self);
             _Mesh.PeerConnected = PeerConnected;
             _Mesh.PeerDisconnected = PeerDisconnected;
             _Mesh.AsyncMessageReceived = AsyncMessageReceived;
             _Mesh.SyncMessageReceived = SyncMessageReceived;
+            _Mesh.AsyncStreamReceived = AsyncStreamReceived;
+            _Mesh.SyncStreamReceived = SyncStreamReceived;
 
-            _Mesh.StartServer();
+            _Mesh.Start();
 
             while (_RunForever)
             {
@@ -44,14 +56,17 @@ namespace TestNetCore
                     case "?":
                         Menu();
                         break;
+
                     case "q":
                     case "quit":
                         _RunForever = false;
                         break;
+
                     case "c":
                     case "cls":
                         Console.Clear();
                         break;
+
                     case "list":
                         peers = _Mesh.GetPeers();
                         if (peers != null && peers.Count > 0)
@@ -64,6 +79,7 @@ namespace TestNetCore
                             Console.WriteLine("None");
                         }
                         break;
+
                     case "failed":
                         peers = _Mesh.GetDisconnectedPeers();
                         if (peers != null && peers.Count > 0)
@@ -76,6 +92,7 @@ namespace TestNetCore
                             Console.WriteLine("None");
                         }
                         break;
+
                     case "sendasync":
                         if (_Mesh.SendAsync(
                             Common.InputString("Peer IP", "127.0.0.1", false),
@@ -89,30 +106,11 @@ namespace TestNetCore
                             Console.WriteLine("Failed");
                         }
                         break;
+
                     case "sendsync":
-                        byte[] responseData = null;
-                        if (_Mesh.SendSync(
-                            Common.InputString("Peer IP", "127.0.0.1", false),
-                            Common.InputInteger("Peer port:", 8000, true, false),
-                            Common.InputInteger("Timeout ms:", 5000, true, false),
-                            Encoding.UTF8.GetBytes(Common.InputString("Data:", "some data", false)),
-                            out responseData))
-                        {
-                            Console.WriteLine("Success");
-                            if (responseData != null && responseData.Length > 0)
-                            {
-                                Console.WriteLine("Response: " + Encoding.UTF8.GetString(responseData));
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("Failed");
-                        }
+                        SendSync();
                         break;
-                    case "synccount":
-                        Console.WriteLine("Pending sync requests  : " + _Mesh.SyncRequests.Count);
-                        Console.WriteLine("Pending sync responses : " + _Mesh.SyncResponses.Count);
-                        break;
+                         
                     case "bcast":
                         if (_Mesh.Broadcast(
                             Encoding.UTF8.GetBytes(Common.InputString("Data:", "some data", false))))
@@ -124,6 +122,7 @@ namespace TestNetCore
                             Console.WriteLine("Failed");
                         }
                         break;
+
                     case "add":
                         _Mesh.Add(
                             new Peer(
@@ -131,6 +130,7 @@ namespace TestNetCore
                                 Common.InputInteger("Peer port:", 8000, true, false),
                                 false));
                         break;
+
                     case "del":
                         _Mesh.Remove(
                             new Peer(
@@ -138,9 +138,11 @@ namespace TestNetCore
                                 Common.InputInteger("Peer port:", 8000, true, false),
                                 false));
                         break;
+
                     case "health":
                         Console.WriteLine("Healthy: " + _Mesh.IsHealthy());
                         break;
+
                     case "nodehealth":
                         Console.WriteLine(
                             _Mesh.IsHealthy(
@@ -162,22 +164,43 @@ namespace TestNetCore
             Console.WriteLine("  add         add a peer");
             Console.WriteLine("  del         delete a peer");
             Console.WriteLine("  sendasync   send a message to a peer asynchronously");
-            Console.WriteLine("  sendsync    send a message to a peer and await a response");
-            Console.WriteLine("  synccount   number of sync requests and responses pending");
+            Console.WriteLine("  sendsync    send a message to a peer and await a response"); 
             Console.WriteLine("  bcast       send a message to all peers");
             Console.WriteLine("  health      display if the mesh is healthy");
             Console.WriteLine("  nodehealth  display if a connection to a peer is healthy");
         }
 
+        static void SendSync()
+        { 
+            byte[] responseData = null;
+            if (_Mesh.SendSync(
+                Common.InputString("Peer IP", "127.0.0.1", false),
+                Common.InputInteger("Peer port:", 8000, true, false),
+                Common.InputInteger("Timeout ms:", 15000, true, false),
+                Encoding.UTF8.GetBytes(Common.InputString("Data:", "some data", false)),
+                out responseData))
+            {
+                Console.WriteLine("Success");
+                if (responseData != null && responseData.Length > 0)
+                {
+                    Console.WriteLine("Response: " + Encoding.UTF8.GetString(responseData));
+                }
+            }
+            else
+            {
+                Console.WriteLine("Failed");
+            } 
+        }
+
         static bool PeerConnected(Peer peer)
         {
-            Console.WriteLine("Peer connected: " + peer.ToString());
+            Console.WriteLine("Peer " + peer.ToString() + " connected");
             return true;
         }
 
         static bool PeerDisconnected(Peer peer)
         {
-            Console.WriteLine("Peer disconnected: " + peer.ToString());
+            Console.WriteLine("Peer " + peer.ToString() + " disconnected");
             return true;
         }
 
@@ -187,11 +210,91 @@ namespace TestNetCore
             return true;
         }
 
-        static byte[] SyncMessageReceived(Peer peer, byte[] data)
+        static SyncResponse SyncMessageReceived(Peer peer, byte[] data)
         {
             Console.WriteLine(peer.ToString() + ": " + Encoding.UTF8.GetString(data));
+            Console.WriteLine("");
+            Console.WriteLine("Press ENTER and THEN type your response!");
             string resp = Common.InputString("Response:", "This is a response", false);
-            return Encoding.UTF8.GetBytes(resp);
+            return new SyncResponse(Encoding.UTF8.GetBytes(resp));
+        }
+
+        static bool AsyncStreamReceived(Peer peer, long contentLength, Stream stream)
+        {
+            Console.WriteLine(peer.ToString() + ": " + contentLength + " bytes in stream");
+
+            long bytesRemaining = contentLength;
+            int bytesRead = 0;
+            byte[] buffer = new byte[_Settings.ReadStreamBufferSize];
+            byte[] data = null;
+
+            while (bytesRemaining > 0)
+            {
+                bytesRead = stream.Read(buffer, 0, buffer.Length);
+
+                if (bytesRead > 0)
+                {
+                    if (bytesRead != _Settings.ReadStreamBufferSize)
+                    {
+                        byte[] temp = new byte[bytesRead];
+                        Buffer.BlockCopy(buffer, 0, temp, 0, bytesRead);
+                        data = Common.AppendBytes(data, temp);
+                    }
+                    else
+                    {
+                        data = Common.AppendBytes(data, buffer);
+                    }
+
+                    bytesRemaining -= bytesRead;
+                }
+            }
+
+            Console.WriteLine(Encoding.UTF8.GetString(data)); 
+            return true;
+        }
+
+        static SyncResponse SyncStreamReceived(Peer peer, long contentLength, Stream stream)
+        {
+            /*
+            Console.WriteLine(peer.ToString() + ": " + contentLength + " bytes in stream");
+
+            long bytesRemaining = contentLength;
+            int bytesRead = 0;
+            byte[] buffer = new byte[_Settings.ReadStreamBufferSize];
+            byte[] data = null;
+
+            while (bytesRemaining > 0)
+            {
+                bytesRead = stream.Read(buffer, 0, buffer.Length);
+
+                if (bytesRead > 0)
+                {
+                    if (bytesRead != _Settings.ReadStreamBufferSize)
+                    {
+                        byte[] temp = new byte[bytesRead];
+                        Buffer.BlockCopy(buffer, 0, temp, 0, bytesRead);
+                        data = Common.AppendBytes(data, temp);
+                    }
+                    else
+                    {
+                        data = Common.AppendBytes(data, buffer);
+                    }
+
+                    bytesRemaining -= bytesRead;
+                }
+            }
+
+            Console.WriteLine(Encoding.UTF8.GetString(data)); 
+            */
+
+            AsyncStreamReceived(peer, contentLength, stream);
+            Console.WriteLine("");
+            Console.WriteLine("Press ENTER and THEN type your response!"); 
+            string resp = Common.InputString("Response:", "This is a response", false);
+            byte[] respData = Encoding.UTF8.GetBytes(resp);
+            MemoryStream ms = new MemoryStream(respData);
+            ms.Write(respData, 0, respData.Length);
+            return new SyncResponse(respData);
         }
     }
 }

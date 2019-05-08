@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security;
 using System.Security.Cryptography;
@@ -10,6 +11,9 @@ using Newtonsoft.Json.Linq;
 
 namespace Watson
 {
+    /// <summary>
+    /// Commonly-used static methods.
+    /// </summary>
     public static class Common
     {
         public static string SerializeJson(object obj, bool pretty)
@@ -215,5 +219,98 @@ namespace Watson
             return s.ComputeHash(data);
         }
 
+        public static byte[] AppendBytes(byte[] head, byte[] tail)
+        {
+            byte[] ret;
+
+            if (head == null || head.Length == 0)
+            {
+                if (tail == null || tail.Length == 0) return null;
+
+                ret = new byte[tail.Length];
+                Buffer.BlockCopy(tail, 0, ret, 0, tail.Length);
+                return ret;
+            }
+            else
+            {
+                if (tail == null || tail.Length == 0) return head;
+
+                ret = new byte[head.Length + tail.Length];
+                Buffer.BlockCopy(head, 0, ret, 0, head.Length);
+                Buffer.BlockCopy(tail, 0, ret, head.Length, tail.Length);
+                return ret;
+            }
+        }
+
+        public static byte[] ReadStream(long contentLength, Stream stream)
+        {
+            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero.");
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
+
+            int bytesRead = 0;
+            long bytesRemaining = contentLength;
+            byte[] buffer = new byte[65536];
+            byte[] ret = null;
+
+            while (bytesRemaining > 0)
+            {
+                bytesRead = stream.Read(buffer, 0, buffer.Length);
+                if (bytesRead > 0)
+                {
+                    if (bytesRead == buffer.Length)
+                    {
+                        ret = AppendBytes(ret, buffer);
+                    }
+                    else
+                    {
+                        byte[] temp = new byte[bytesRead];
+                        Buffer.BlockCopy(buffer, 0, temp, 0, bytesRead);
+                        ret = AppendBytes(ret, temp);
+                    } 
+                    bytesRemaining -= bytesRead;
+                }
+            }
+
+            return ret;
+        }
+
+        public static byte[] ReadStream(Stream stream)
+        {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
+
+            int bytesRead = 0;
+            byte[] buffer = new byte[65536];
+            byte[] ret = null;
+
+            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                if (bytesRead == buffer.Length)
+                {
+                    ret = AppendBytes(ret, buffer);
+                }
+                else
+                {
+                    byte[] temp = new byte[bytesRead];
+                    Buffer.BlockCopy(buffer, 0, temp, 0, bytesRead);
+                    ret = AppendBytes(ret, buffer);
+                }
+            }
+
+            return ret;
+        }
+
+        public static void LogException(Exception e)
+        {
+            Console.WriteLine("================================================================================");
+            Console.WriteLine(" = Exception Type: " + e.GetType().ToString());
+            Console.WriteLine(" = Exception Data: " + e.Data);
+            Console.WriteLine(" = Inner Exception: " + e.InnerException);
+            Console.WriteLine(" = Exception Message: " + e.Message);
+            Console.WriteLine(" = Exception Source: " + e.Source);
+            Console.WriteLine(" = Exception StackTrace: " + e.StackTrace);
+            Console.WriteLine("================================================================================");
+        }
     }
 }

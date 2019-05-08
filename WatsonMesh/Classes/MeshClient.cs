@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,9 +9,17 @@ using WatsonTcp;
 
 namespace Watson
 {
+    /// <summary>
+    /// Watson mesh networking client.
+    /// </summary>
     internal class MeshClient : IDisposable
     {
         #region Public-Members
+
+        /// <summary>
+        /// Enable or disable console debugging.
+        /// </summary>
+        public bool Debug = false;
 
         /// <summary>
         /// The peer object.
@@ -30,33 +39,50 @@ namespace Watson
         /// <summary>
         /// Function to call when a message is received from a remote client.
         /// </summary>
-        public Func<Peer, byte[], bool> ServerMessageReceived = null;
+        public Func<Peer, byte[], bool> MessageReceived = null;
+
+        /// <summary>
+        /// Function to call when a message is received from a remote client.
+        /// Read the specified number of bytes from the stream.
+        /// </summary>
+        public Func<Peer, long, Stream, bool> StreamReceived = null;
+          
+        /// <summary>
+        /// Check if the local client is connected to the remote server.
+        /// </summary>
+        /// <returns>True if connected.</returns>
+        public bool Connected
+        {
+            get
+            {
+                if (_TcpClient == null) return false;
+                return _TcpClient.Connected;
+            }
+        }
 
         #endregion
 
         #region Private-Members
 
-        private bool _Disposed = false;
-
-        private MeshSettings _Settings;
-
-        private WatsonTcpClient _TcpClient;
-        private WatsonTcpSslClient _TcpSslClient;
-
-        private Func<string, bool> _WarningMessage;
+        private bool _Disposed = false; 
+        private MeshSettings _Settings; 
+        private WatsonTcpClient _TcpClient;  
 
         #endregion
 
         #region Constructors-and-Factories
-
-        public MeshClient(MeshSettings settings, Peer peer, Func<string, bool> warningMessage)
+        
+        /// <summary>
+        /// Instantiate the object.
+        /// </summary>
+        /// <param name="settings">Settings.</param>
+        /// <param name="peer">Peer.</param>
+        public MeshClient(MeshSettings settings, Peer peer)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
             if (peer == null) throw new ArgumentNullException(nameof(peer));
 
             _Settings = settings;
-            _WarningMessage = warningMessage;
-
             Peer = peer;
         }
 
@@ -76,60 +102,41 @@ namespace Watson
         /// <summary>
         /// Establish TCP (with or without SSL) connection to the peer server.
         /// </summary>
-        public void Connect()
-        {
-            try
-            {
-                if (Peer.Ssl)
-                {
-                    _TcpClient = null;
-                    _TcpSslClient = new WatsonTcpSslClient(
-                        Peer.Ip,
-                        Peer.Port,
-                        Peer.PfxCertificateFile,
-                        Peer.PfxCertificatePassword,
-                        _Settings.AcceptInvalidCertificates,
-                        _Settings.SslMutualAuthentication,
-                        _ServerConnected,
-                        _ServerDisconnected,
-                        _ServerMessageReceived,
-                        _Settings.DebugNetworking);
-                }
-                else
-                {
-                    _TcpSslClient = null;
-                    _TcpClient = new WatsonTcpClient(
-                        Peer.Ip,
-                        Peer.Port,
-                        _ServerConnected,
-                        _ServerDisconnected,
-                        _ServerMessageReceived,
-                        _Settings.DebugNetworking);
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine("Unable to connect to peer " + Peer.ToString() + " due to exception: " + e.ToString());
-                _WarningMessage?.Invoke("[MeshClient " + Peer.ToString() + "] Connect unable to connect"); 
-                Task.Run(() => ReconnectToServer());
-            }
-        }
-
-        /// <summary>
-        /// Check if the local client is connected to the remote server.
-        /// </summary>
-        /// <returns>True if connected.</returns>
-        public bool IsConnected()
+        public void Start()
         {
             if (Peer.Ssl)
             {
-                if (_TcpSslClient == null) return false;
-                return _TcpSslClient.IsConnected();
+                _TcpClient = new WatsonTcpClient(
+                    Peer.Ip,
+                    Peer.Port,
+                    Peer.PfxCertificateFile,
+                    Peer.PfxCertificatePassword);
             }
             else
             {
-                if (_TcpClient == null) return false;
-                return _TcpClient.IsConnected();
+                _TcpClient = new WatsonTcpClient(
+                    Peer.Ip,
+                    Peer.Port);
+            }
+
+            _TcpClient.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates;
+            _TcpClient.Debug = _Settings.Debug;
+            _TcpClient.MutuallyAuthenticate = _Settings.MutuallyAuthenticate;
+            _TcpClient.ReadDataStream = _Settings.ReadDataStream;
+            _TcpClient.ReadStreamBufferSize = _Settings.ReadStreamBufferSize;
+
+            _TcpClient.ServerConnected = MeshClientServerConnected;
+            _TcpClient.ServerDisconnected = MeshClientServerDisconnected;
+            _TcpClient.StreamReceived = MeshClientStreamReceived;
+            _TcpClient.MessageReceived = MeshClientMessageReceived;
+
+            try
+            {
+                _TcpClient.Start();
+            }
+            catch (Exception)
+            {
+                Task.Run(() => MeshClientServerDisconnected());
             }
         }
 
@@ -141,24 +148,44 @@ namespace Watson
         public async Task<bool> Send(byte[] data)
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-
-            bool success = false;
-            if (_TcpClient != null)
+             
+            try
             {
-                success = await _TcpClient.SendAsync(data);
-                if (!success) _WarningMessage?.Invoke("[MeshClient " + Peer.ToString() + "] Send null TcpClient object");
-                return success;
+                return await _TcpClient.SendAsync(data);
             }
-            else if (_TcpSslClient != null)
-            {
-                success = await _TcpSslClient.SendAsync(data);
-                if (!success) _WarningMessage?.Invoke("[MeshClient " + Peer.ToString() + "] Send null TcpSslClient object"); 
-                return success;
+            catch (Exception e)
+            { 
+                if (Debug)
+                {
+                    Console.WriteLine(Common.SerializeJson(e, true));
+                }
+                return false;
             }
+        }
 
-            Debug.WriteLine("No connection to peer: " + Peer.ToString());
-            _WarningMessage?.Invoke("[MeshClient " + Peer.ToString() + "] Send no connection object present");
-            return false;
+        /// <summary>
+        /// Send data to the remote server.
+        /// </summary>
+        /// <param name="contentLength">The number of bytes to read from the stream.</param>
+        /// <param name="stream">The stream containing the data to send.</param>
+        /// <returns>True if successful.</returns>
+        public async Task<bool> Send(long contentLength, Stream stream)
+        {
+            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero.");
+            if (stream == null || !stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
+             
+            try
+            {
+                return await _TcpClient.SendAsync(contentLength, stream);
+            }
+            catch (Exception e)
+            {
+                if (Debug)
+                {
+                    Console.WriteLine(Common.SerializeJson(e, true));
+                }
+                return false;
+            }
         }
 
         #endregion
@@ -166,7 +193,7 @@ namespace Watson
         #region Private-Methods
 
         protected virtual void Dispose(bool disposing)
-        {
+        { 
             if (_Disposed)
             {
                 return;
@@ -175,56 +202,74 @@ namespace Watson
             if (disposing)
             {
                 if (_TcpClient != null) _TcpClient.Dispose();
-                if (_TcpSslClient != null) _TcpSslClient.Dispose();
             }
 
             _Disposed = true;
         }
 
-        private bool _ServerConnected()
+        private bool MeshClientServerConnected()
         {
-            Debug.WriteLine("Peer server connected: " + Peer.ToString());
-            if (ServerConnected != null) return ServerConnected(Peer);
-            else return true;
+            if (ServerConnected != null)
+            {
+                return ServerConnected(Peer);
+            }
+            else
+            {
+                return true;
+            }
         }
 
-        private bool _ServerDisconnected()
-        {
-            Debug.WriteLine("Peer server disconnected: " + Peer.ToString()); 
-
-            Task.Run(() => ReconnectToServer());
-
-            if (ServerDisconnected != null) return ServerDisconnected(Peer);
-            else return true;
-        }
-
-        private bool _ServerMessageReceived(byte[] data)
+        private bool MeshClientServerDisconnected()
         { 
-            if (ServerMessageReceived != null) return ServerMessageReceived(Peer, data);
-            else return true;
+            Task.Run(() => ReconnectToServer());
+            if (ServerDisconnected != null)
+            {
+                return ServerDisconnected(Peer);
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        private bool MeshClientMessageReceived(byte[] data)
+        {
+            if (MessageReceived != null)
+            {
+                return MessageReceived(Peer, data);
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        private bool MeshClientStreamReceived(long contentLength, Stream stream)
+        {
+            if (StreamReceived != null)
+            {
+                return StreamReceived(Peer, contentLength, stream);
+            }
+            else
+            {
+                return true;
+            }
         }
 
         private void ReconnectToServer()
         {
-            if (!_Settings.AutomaticReconnect)
-            {
-                Debug.WriteLine("Reconnect to " + Peer.ToString() + " disabled by settings");
-                return;
-            }
+            if (!_Settings.AutomaticReconnect) return;
 
             while (true)
-            {
+            { 
                 try
                 {
-                    Debug.WriteLine("Reconnect to " + Peer.ToString() + " pending in " + _Settings.ReconnectIntervalMs + "ms");
                     Task.Delay(_Settings.ReconnectIntervalMs).Wait();
-                    Connect();
-                    Debug.WriteLine("Reconnect to " + Peer.ToString() + " successful");
+                    Start(); 
                     break;
                 }
-                catch (Exception e)
-                {
-                    Debug.WriteLine("Reconnect to " + Peer.ToString() + " failed, reattempting (" + e.Message + ")");
+                catch (Exception)
+                { 
                 }
             }
         }

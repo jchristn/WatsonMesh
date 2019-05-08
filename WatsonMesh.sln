@@ -3,11 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27428.2027
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestNetFramework", "TestNetFramework\TestNetFramework.csproj", "{8D870A48-AC54-4024-B418-CEB480DCE442}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WatsonMesh", "WatsonMesh\WatsonMesh.csproj", "{F458B6A2-292C-46DB-80C6-AA5027127F13}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestNetCore", "TestNetCore\TestNetCore.csproj", "{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test", "Test\Test.csproj", "{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,10 +13,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{8D870A48-AC54-4024-B418-CEB480DCE442}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8D870A48-AC54-4024-B418-CEB480DCE442}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8D870A48-AC54-4024-B418-CEB480DCE442}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8D870A48-AC54-4024-B418-CEB480DCE442}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F458B6A2-292C-46DB-80C6-AA5027127F13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F458B6A2-292C-46DB-80C6-AA5027127F13}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F458B6A2-292C-46DB-80C6-AA5027127F13}.Release|Any CPU.ActiveCfg = Release|Any CPU
