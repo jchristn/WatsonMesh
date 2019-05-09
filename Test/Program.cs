@@ -94,10 +94,11 @@ namespace TestNetCore
                         break;
 
                     case "sendasync":
+                        userInput = Common.InputString("Data:", "some data", false);
                         if (_Mesh.SendAsync(
                             Common.InputString("Peer IP", "127.0.0.1", false),
                             Common.InputInteger("Peer port:", 8000, true, false),
-                            Encoding.UTF8.GetBytes(Common.InputString("Data:", "some data", false))))
+                            Encoding.UTF8.GetBytes(userInput)))
                         {
                             Console.WriteLine("Success");
                         }
@@ -169,15 +170,16 @@ namespace TestNetCore
             Console.WriteLine("  health      display if the mesh is healthy");
             Console.WriteLine("  nodehealth  display if a connection to a peer is healthy");
         }
-
+        
         static void SendSync()
-        { 
+        {
+            string userInput = Common.InputString("Data:", "some data", false);
             byte[] responseData = null;
             if (_Mesh.SendSync(
                 Common.InputString("Peer IP", "127.0.0.1", false),
                 Common.InputInteger("Peer port:", 8000, true, false),
                 Common.InputInteger("Timeout ms:", 15000, true, false),
-                Encoding.UTF8.GetBytes(Common.InputString("Data:", "some data", false)),
+                Encoding.UTF8.GetBytes(userInput),
                 out responseData))
             {
                 Console.WriteLine("Success");
@@ -222,72 +224,16 @@ namespace TestNetCore
         static bool AsyncStreamReceived(Peer peer, long contentLength, Stream stream)
         {
             Console.WriteLine(peer.ToString() + ": " + contentLength + " bytes in stream");
-
-            long bytesRemaining = contentLength;
-            int bytesRead = 0;
-            byte[] buffer = new byte[_Settings.ReadStreamBufferSize];
-            byte[] data = null;
-
-            while (bytesRemaining > 0)
-            {
-                bytesRead = stream.Read(buffer, 0, buffer.Length);
-
-                if (bytesRead > 0)
-                {
-                    if (bytesRead != _Settings.ReadStreamBufferSize)
-                    {
-                        byte[] temp = new byte[bytesRead];
-                        Buffer.BlockCopy(buffer, 0, temp, 0, bytesRead);
-                        data = Common.AppendBytes(data, temp);
-                    }
-                    else
-                    {
-                        data = Common.AppendBytes(data, buffer);
-                    }
-
-                    bytesRemaining -= bytesRead;
-                }
-            }
-
+            byte[] data = Common.ReadStream(contentLength, stream);
             Console.WriteLine(Encoding.UTF8.GetString(data)); 
             return true;
         }
 
         static SyncResponse SyncStreamReceived(Peer peer, long contentLength, Stream stream)
         {
-            /*
             Console.WriteLine(peer.ToString() + ": " + contentLength + " bytes in stream");
-
-            long bytesRemaining = contentLength;
-            int bytesRead = 0;
-            byte[] buffer = new byte[_Settings.ReadStreamBufferSize];
-            byte[] data = null;
-
-            while (bytesRemaining > 0)
-            {
-                bytesRead = stream.Read(buffer, 0, buffer.Length);
-
-                if (bytesRead > 0)
-                {
-                    if (bytesRead != _Settings.ReadStreamBufferSize)
-                    {
-                        byte[] temp = new byte[bytesRead];
-                        Buffer.BlockCopy(buffer, 0, temp, 0, bytesRead);
-                        data = Common.AppendBytes(data, temp);
-                    }
-                    else
-                    {
-                        data = Common.AppendBytes(data, buffer);
-                    }
-
-                    bytesRemaining -= bytesRead;
-                }
-            }
-
-            Console.WriteLine(Encoding.UTF8.GetString(data)); 
-            */
-
-            AsyncStreamReceived(peer, contentLength, stream);
+            byte[] data = Common.ReadStream(contentLength, stream);
+            Console.WriteLine(Encoding.UTF8.GetString(data));
             Console.WriteLine("");
             Console.WriteLine("Press ENTER and THEN type your response!"); 
             string resp = Common.InputString("Response:", "This is a response", false);

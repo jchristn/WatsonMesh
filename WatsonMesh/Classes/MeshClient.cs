@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Authentication;
 using System.Text;
 using System.Threading.Tasks;
 using WatsonTcp;
@@ -25,6 +26,21 @@ namespace Watson
         /// The peer object.
         /// </summary>
         public Peer Peer { get; private set; }
+
+        /// <summary>
+        /// Function to call when authentication is requested.
+        /// </summary>
+        public Func<string> AuthenticationRequested = null;
+
+        /// <summary>
+        /// Function to call when authentication succeeded.
+        /// </summary>
+        public Func<bool> AuthenticationSucceeded = null;
+
+        /// <summary>
+        /// Function to call when authentication failed.
+        /// </summary>
+        public Func<bool> AuthenticationFailure = null;
 
         /// <summary>
         /// Function to call when a connection is established with a remote client.
@@ -125,6 +141,9 @@ namespace Watson
             _TcpClient.ReadDataStream = _Settings.ReadDataStream;
             _TcpClient.ReadStreamBufferSize = _Settings.ReadStreamBufferSize;
 
+            _TcpClient.AuthenticationRequested = MeshClientAuthenticationRequested;
+            _TcpClient.AuthenticationSucceeded = MeshClientAuthenticationSucceeded;
+            _TcpClient.AuthenticationFailure = MeshClientAuthenticationFailure;
             _TcpClient.ServerConnected = MeshClientServerConnected;
             _TcpClient.ServerDisconnected = MeshClientServerDisconnected;
             _TcpClient.StreamReceived = MeshClientStreamReceived;
@@ -205,6 +224,25 @@ namespace Watson
             }
 
             _Disposed = true;
+        }
+         
+        private string MeshClientAuthenticationRequested()
+        {
+            if (AuthenticationRequested != null) return AuthenticationRequested();
+            if (!String.IsNullOrEmpty(_Settings.PresharedKey)) return _Settings.PresharedKey;
+            else throw new AuthenticationException("Cannot authenticate using supplied preshared key to peer " + Peer.ToString());
+        }
+
+        private bool MeshClientAuthenticationSucceeded()
+        {
+            if (AuthenticationSucceeded != null) return AuthenticationSucceeded();
+            return true;
+        }
+
+        private bool MeshClientAuthenticationFailure()
+        {
+            if (AuthenticationFailure != null) return AuthenticationFailure();
+            return true;
         }
 
         private bool MeshClientServerConnected()

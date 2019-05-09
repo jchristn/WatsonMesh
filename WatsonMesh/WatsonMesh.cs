@@ -434,7 +434,7 @@ namespace Watson
         }
 
         #region Private-MeshClient-Callbacks
-        
+         
         private bool MeshClientServerConnected(Peer peer)
         { 
             if (PeerConnected != null) return PeerConnected(peer);

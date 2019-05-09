@@ -31,7 +31,7 @@ namespace Watson
         /// <summary>
         /// Shared secret password to use to mutually authenticate mesh network members.
         /// </summary>
-        public string PresharedKey { get; set; }
+        public string PresharedKey = null;
          
         /// <summary>
         /// Enable or disable acceptance of invalid or unverifiable SSL certificates.
@@ -84,7 +84,7 @@ namespace Watson
             Debug = false;
             AutomaticReconnect = true;
             ReconnectIntervalMs = 1000;
-            PresharedKey = "default"; 
+            PresharedKey = null; 
             AcceptInvalidCertificates = true;
             MutuallyAuthenticate = false; 
             ReadDataStream = true; 
