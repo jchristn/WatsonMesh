@@ -23,27 +23,27 @@ namespace Watson
         /// <summary>
         /// Server port number.
         /// </summary>
-        public int Port { get; private set; }
+        public int Port { get; set; }
 
         /// <summary>
         /// Server IP address and port, of the form IP:port, used as an identifier.
         /// </summary>
-        public string IpPort { get; private set; }
+        public string IpPort { get; set; }
          
         /// <summary>
         /// Enable or disable SSL.
         /// </summary>
-        public bool Ssl { get; private set; }
+        public bool Ssl { get; set; }
 
         /// <summary>
         /// PFX SSL certificate path and filename.
         /// </summary>
-        public string PfxCertificateFile { get; private set; }
+        public string PfxCertificateFile { get; set; }
 
         /// <summary>
         /// Password for PFX SSL certificate file.
         /// </summary>
-        public string PfxCertificatePassword { get; private set; }
+        public string PfxCertificatePassword { get; set; }
 
         #endregion
 
@@ -52,6 +52,14 @@ namespace Watson
         #endregion
 
         #region Constructors-and-Factories
+
+        /// <summary>
+        /// Instantiate the object.
+        /// </summary>
+        public Peer()
+        {
+
+        }
 
         /// <summary>
         /// Instantiate the object.  Call 'Connect()' method after instantiating and assigning values.  This constructor does not support SSL certificate files or passwords.

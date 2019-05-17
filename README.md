@@ -35,11 +35,8 @@ Under the hood, ```WatsonMesh``` relies on ```WatsonTcp``` (see https://github.c
 
 - Added support for sending streams in async messages to support larger messages
 - Sync messages (expecting a response) still use byte arrays, as these are usually smaller, interactive messages
+- Default constructor for Peer
 - Bugfixes and minor refactor
-
-## Roadmap
-
-The main gap in this release is the lack of a state machine to manage sharing of configuration and authentication amongst nodes.  However, authentication is less necessary when using SSL with certificate files.
 
 ## Test App
 
