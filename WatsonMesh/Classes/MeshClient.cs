@@ -135,8 +135,7 @@ namespace Watson
                     Peer.Port);
             }
 
-            _TcpClient.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates;
-            _TcpClient.Debug = _Settings.Debug;
+            _TcpClient.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
             _TcpClient.MutuallyAuthenticate = _Settings.MutuallyAuthenticate;
             _TcpClient.ReadDataStream = _Settings.ReadDataStream;
             _TcpClient.ReadStreamBufferSize = _Settings.ReadStreamBufferSize;

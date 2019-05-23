@@ -12,12 +12,7 @@ namespace Watson
     public class MeshSettings
     {
         #region Public-Members
-
-        /// <summary>
-        /// Enable or disable console debugging.
-        /// </summary>
-        public bool Debug { get; set; }
-
+         
         /// <summary>
         /// Indicate whether or not to automatically reconnect when a connection is severed.
         /// </summary>
@@ -80,8 +75,7 @@ namespace Watson
         /// Instantiate the object.
         /// </summary>
         public MeshSettings()
-        {
-            Debug = false;
+        { 
             AutomaticReconnect = true;
             ReconnectIntervalMs = 1000;
             PresharedKey = null; 

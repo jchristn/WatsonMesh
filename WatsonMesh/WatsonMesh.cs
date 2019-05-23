@@ -18,7 +18,7 @@ namespace Watson
     public class WatsonMesh
     {
         #region Public-Members
-         
+
         /// <summary>
         /// Function to call when a peer connection is successfully established.
         /// </summary>
@@ -477,9 +477,8 @@ namespace Watson
 
                 return true;
             }
-            catch (Exception e)
-            {
-                Console.WriteLine("ServerMessageReceived exception: " + Environment.NewLine + Common.SerializeJson(e, true));
+            catch (Exception)
+            { 
                 return false;
             }
         }
@@ -492,12 +491,10 @@ namespace Watson
 
                 if (currMsg.SyncRequest)
                 {
-                    if (SyncMessageReceived != null)
+                    if (SyncStreamReceived != null)
                     {
-                        SyncResponse syncResponse = SyncStreamReceived(peer, currMsg.ContentLength, currMsg.DataStream);
-                        Console.WriteLine("ServerStreamReceived received sync response");
-                        Message responseMsg = new Message(_Self.Ip, _Self.Port, peer.Ip, peer.Port, currMsg.TimeoutMs, false, true, currMsg.Type, syncResponse.Data);
-                        Console.WriteLine("ServerStreamReceived built message");
+                        SyncResponse syncResponse = SyncStreamReceived(peer, currMsg.ContentLength, currMsg.DataStream); 
+                        Message responseMsg = new Message(_Self.Ip, _Self.Port, peer.Ip, peer.Port, currMsg.TimeoutMs, false, true, currMsg.Type, syncResponse.Data); 
                         responseMsg.Id = currMsg.Id;
                         MeshClient currClient = GetMeshClientByIpPort(peer.Ip, peer.Port);
                         return SendSyncResponseInternal(currClient, responseMsg);
@@ -519,9 +516,8 @@ namespace Watson
 
                 return true;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Console.WriteLine("ServerStreamReceived exception: " + Environment.NewLine + Common.SerializeJson(e, true));
                 return false;
             }
         }
@@ -544,13 +540,11 @@ namespace Watson
         { 
             try
             {
-                Message currMsg = new Message(data, true);
-                // Console.WriteLine(currMsg.ToString()); 
+                Message currMsg = new Message(data, true); 
 
                 Peer currPeer = GetPeerByIpPort(currMsg.SourceIp, currMsg.SourcePort);
                 if (currPeer == null || currPeer == default(Peer))
-                {
-                    // Console.WriteLine("Unable to find peer " + currMsg.SourceIp + ":" + currMsg.SourcePort);
+                { 
                     return false;
                 }
 
@@ -582,9 +576,8 @@ namespace Watson
 
                 return true;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Console.WriteLine("ClientMessageReceived exception: " + Environment.NewLine + Common.SerializeJson(e, true));
                 return false;
             }
         }
@@ -597,14 +590,13 @@ namespace Watson
 
                 Peer currPeer = GetPeerByIpPort(currMsg.SourceIp, currMsg.SourcePort);
                 if (currPeer == null || currPeer == default(Peer))
-                {
-                    // Console.WriteLine("Unable to find peer " + currMsg.SourceIp + ":" + currMsg.SourcePort);
+                { 
                     return false;
                 }
                  
                 if (currMsg.SyncRequest)
                 {
-                    if (SyncMessageReceived != null)
+                    if (SyncStreamReceived != null)
                     {
                         SyncResponse syncResponse = SyncStreamReceived(currPeer, currMsg.ContentLength, currMsg.DataStream); 
                         Message responseMsg = new Message(_Self.Ip, _Self.Port, currPeer.Ip, currPeer.Port, currMsg.TimeoutMs, false, true, currMsg.Type, syncResponse.Data); 
@@ -630,9 +622,8 @@ namespace Watson
 
                 return true;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Console.WriteLine("ClientStreamReceived exception: " + Environment.NewLine + Common.SerializeJson(e, true));
                 return false;
             } 
         }
@@ -660,100 +651,52 @@ namespace Watson
 
         private bool SendAsyncInternal(MeshClient client, MessageType msgType, byte[] data)
         {
-            try
-            {
-                Message msg = new Message(_Self.Ip, _Self.Port, client.Peer.Ip, client.Peer.Port, 0, false, false, msgType, data);
-                byte[] msgData = msg.ToBytes();
-                return client.Send(msgData).Result;
-            }
-            catch (Exception e)
-            {
-                if (_Settings.Debug)
-                {
-                    Console.WriteLine("SendAsyncInternal Exception " + Environment.NewLine + Common.SerializeJson(e, true));
-                }
-
-                return false;
-            }
+            Message msg = new Message(_Self.Ip, _Self.Port, client.Peer.Ip, client.Peer.Port, 0, false, false, msgType, data);
+            byte[] msgData = msg.ToBytes();
+            return client.Send(msgData).Result;
         }
 
         private bool SendAsyncInternal(MeshClient client, MessageType msgType, long contentLength, Stream stream)
         {
-            try
-            {
-                Message msg = new Message(_Self.Ip, _Self.Port, client.Peer.Ip, client.Peer.Port, 0, false, false, msgType, contentLength, stream);
-                byte[] msgData = msg.ToBytes();
-                return client.Send(msgData).Result;
-            }
-            catch (Exception e)
-            {
-                if (_Settings.Debug)
-                {
-                    Console.WriteLine(Common.SerializeJson(e, true));
-                }
-
-                return false;
-            }
+            Message msg = new Message(_Self.Ip, _Self.Port, client.Peer.Ip, client.Peer.Port, 0, false, false, msgType, contentLength, stream);
+            byte[] msgData = msg.ToBytes();
+            return client.Send(msgData).Result;
         }
 
         private bool BroadcastAsyncInternal(MessageType msgType, byte[] data)
-        {
-            try
+        { 
+            Message msg = new Message(_Self.Ip, _Self.Port, "0.0.0.0", 0, 0, false, false, msgType, data);
+            byte[] msgData = msg.ToBytes();
+
+            bool success = true;
+
+            lock (_ClientsLock)
             {
-                Message msg = new Message(_Self.Ip, _Self.Port, "0.0.0.0", 0, 0, false, false, msgType, data);
-                byte[] msgData = msg.ToBytes();
-
-                bool success = true;
-
-                lock (_ClientsLock)
+                foreach (MeshClient currClient in _Clients)
                 {
-                    foreach (MeshClient currClient in _Clients)
-                    {
-                        success = success && currClient.Send(msgData).Result;
-                    }
+                    success = success && currClient.Send(msgData).Result;
                 }
-
-                return success;
             }
-            catch (Exception e)
-            {
-                if (_Settings.Debug)
-                {
-                    Console.WriteLine(Common.SerializeJson(e, true));
-                }
 
-                return false;
-            }
+            return success; 
         }
 
         private bool BroadcastAsyncInternal(MessageType msgType, long contentLength, Stream stream)
-        {
-            try
+        { 
+            Message msg = new Message(_Self.Ip, _Self.Port, "0.0.0.0", 0, 0, false, false, msgType, contentLength, stream);
+            byte[] msgData = msg.ToBytes();
+
+            bool success = true;
+
+            lock (_ClientsLock)
             {
-                Message msg = new Message(_Self.Ip, _Self.Port, "0.0.0.0", 0, 0, false, false, msgType, contentLength, stream);
-                byte[] msgData = msg.ToBytes();
-
-                bool success = true;
-
-                lock (_ClientsLock)
+                foreach (MeshClient currClient in _Clients)
                 {
-                    foreach (MeshClient currClient in _Clients)
-                    {
-                        success = success && currClient.Send(msgData).Result;
-                    }
+                    success = success && currClient.Send(msgData).Result;
                 }
-
-                return success;
             }
-            catch (Exception e)
-            {
-                if (_Settings.Debug)
-                {
-                    Console.WriteLine(Common.SerializeJson(e, true));
-                }
 
-                return false;
-            }
+            return success; 
         }
 
         private bool SendSyncRequestInternal(MeshClient client, MessageType msgType, int timeoutMs, byte[] data, out byte[] response)
@@ -768,13 +711,8 @@ namespace Watson
                 if (!client.Send(msgData).Result) return false;
                 return GetSyncResponse(msg.Id, timeoutMs, out response);
             }
-            catch (Exception e)
-            {
-                if (_Settings.Debug)
-                {
-                    Console.WriteLine(Common.SerializeJson(e, true));
-                }
-
+            catch (Exception)
+            { 
                 return false;
             }
             finally

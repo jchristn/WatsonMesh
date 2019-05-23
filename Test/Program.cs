@@ -25,8 +25,7 @@ namespace TestNetCore
 
             _Settings = new MeshSettings();
             _Settings.AcceptInvalidCertificates = true;
-            _Settings.AutomaticReconnect = true;
-            _Settings.Debug = false;
+            _Settings.AutomaticReconnect = true; 
             _Settings.MutuallyAuthenticate = false;
             _Settings.PresharedKey = null;
             _Settings.ReadDataStream = true;

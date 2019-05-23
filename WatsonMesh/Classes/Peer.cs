@@ -18,7 +18,7 @@ namespace Watson
         /// <summary>
         /// Server IP address.
         /// </summary>
-        public string Ip { get; private set; }
+        public string Ip { get; set; }
 
         /// <summary>
         /// Server port number.

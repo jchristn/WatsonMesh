@@ -87,8 +87,7 @@ namespace Watson
                     _Self.Port);
             }
 
-            _TcpServer.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates;
-            _TcpServer.Debug = _Settings.Debug;
+            _TcpServer.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
             _TcpServer.MutuallyAuthenticate = _Settings.MutuallyAuthenticate;
             _TcpServer.PresharedKey = _Settings.PresharedKey;
             _TcpServer.ReadDataStream = _Settings.ReadDataStream;
