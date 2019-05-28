@@ -13,30 +13,31 @@ Watson Mesh is a simple library for mesh networking.  Instantiate the ```WatsonM
 
 The network ```IsHealthy``` from a node's perspective if it has established outbound connections to each of its defined peers.  Thus, the health of the network is determined by each node from its own viewpoint.  The state of inbound connections from other nodes is not considered, but rather its ability to reach out to its peers.
 
+Watson Mesh supports use of either byte arrays or streams for sending and receiving data.
+
+- If you prefer to use ```byte[]```, set ```Settings.ReadDataStream = true``` and implement the callbacks ```AsyncMessageReceived``` and ```SyncMessageReceived```
+- If you prefer to use ```Stream```, set ```Settings.ReadDataStream = false``` and implement the callbacks ```AsyncStreamReceived``` and ```SyncStreamReceived```
+
 Send an asynchronous message using:
 
-- To a peer using a byte array: ```SendAsync(string ip, int port, byte[] data)```
-- To a peer using a stream: ```SendAsync(string ip, int port, long contentLength, Stream stream)```
-- To the entire network:  or broadcast to all connected peers using ```Broadcast(byte[] data)```
+- A byte array: ```SendAsync(string ip, int port, byte[] data)```
+- A stream: ```SendAsync(string ip, int port, long contentLength, Stream stream)```
 
-Sending a synchronous message will block until a response is received or the message times out:
+Sending a synchronous message will block until a response is received or the message times out.  To send a synchronous message using:
 
-- Use ```SendSync(string ip, int port, byte[] data, out byte[] response)```
+- A byte array: ```SendSync(string ip, int port, int timeoutMs, byte[] data, out byte[] response)```
+- A stream: ```SendSync(string ip, int port, int timeoutMs, long contentLength, Stream stream, out long responseLength, out Stream responseStream)```
 
-If you prefer to use ```byte[] data``` when receiving async messages, set ```Settings.ReadDataStream = true```.
+You can also send a message to every connected peer.  To do so using:
 
-If you prefer to use ```Stream stream``` and ```long contentLength``` when receiving async messages, set ```Settings.ReadDataStream = false```.
-
-Sync messages will always arrive using ```byte[] data``` and expect ```byte[] data``` in response.
+- A byte array: ```Broadcast(byte[] data)```
+- A stream: ```Broadcast(long contentLength, Stream stream)```
 
 Under the hood, ```WatsonMesh``` relies on ```WatsonTcp``` (see https://github.com/jchristn/WatsonTcp).
 
-## New in This Version
+## New in v1.2.x
 
-- Added support for sending streams in async messages to support larger messages
-- Sync messages (expecting a response) still use byte arrays, as these are usually smaller, interactive messages
-- Default constructor for Peer
-- Bugfixes and minor refactor
+- Added support for sync messaging using streams
 
 ## Test App
 
@@ -44,7 +45,7 @@ Refer to the ```Test``` project for a full working example.  Multiple instances 
 
 ## Example
 
-The following example shows a simple example without SSL.  Make sure you start instances for mesh nodes running on ports 8000, 8001, and 8002.  You can use multiple instances of the ```Test``` project to see a more complete example. 
+The following example shows a simple example using byte arrays and without SSL.  Make sure you start instances for mesh nodes running on ports 8000, 8001, and 8002.  You can use multiple instances of the ```Test``` project to see a more complete example. 
 
 ```
 using WatsonMesh;
@@ -113,7 +114,15 @@ mono --server myapp.exe
 
 Release content from previous versions will be shown here.
 
+v1.1.x
+
+- Added support for sending streams in async messages to support larger messages
+- Sync messages (expecting a response) still use byte arrays, as these are usually smaller, interactive messages
+- Default constructor for Peer
+- Bugfixes and minor refactor
+
 v1.0.x
+
 - Retarget to support .NET Core 2.0 and .NET Framework 4.6.1
 - WarningMessage function, which can be useful for sending warning messages to the consuming application.  Useful for debugging issues in particular with synchronous messaging.
 - Sync message API (awaits and returns response within specified timeout)
