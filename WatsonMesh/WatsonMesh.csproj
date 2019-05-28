@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.1.4</Version>
+    <Version>1.2.0</Version>
     <Authors>Joel Christner</Authors>
     <Description>A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.</Description>
     <Copyright>(c)2019 Joel Christner</Copyright>
@@ -11,7 +11,7 @@
     <RepositoryUrl>https://github.com/jchristn/WatsonMesh</RepositoryUrl>
     <RepositoryType>Github</RepositoryType>
     <PackageLicenseUrl>https://github.com/jchristn/WatsonMesh/blob/master/LICENSE.TXT</PackageLicenseUrl>
-    <PackageReleaseNotes>Added support for sending async streams (to support larger messages).  Sync messages are generally smaller and can only use byte arrays.  Default constructor for Peer.</PackageReleaseNotes>
+    <PackageReleaseNotes>Added support for sending synchronous messages using streams and receiving synchronous responses using streams.</PackageReleaseNotes>
     <PackageTags>mesh network networking tcp ssl framing distributed cluster event health healthy</PackageTags>
   </PropertyGroup>
 

@@ -38,7 +38,7 @@ namespace Watson
                 return _Data;
             }
             set
-            { 
+            {
                 if (value != null)
                 {
                     _Data = new byte[value.Length];
@@ -52,13 +52,31 @@ namespace Watson
                 }
             }
         }
-         
+
+        /// <summary>
+        /// Stream containing response data.  Set ContentLength first.
+        /// </summary>
+        public Stream DataStream
+        {
+            get
+            {
+                return _DataStream;
+            }
+            set
+            {
+                if (_ContentLength <= 0) throw new ArgumentException("Set ContentLength before setting DataStream.");
+                _DataStream = value;
+                _Data = null;
+            }
+        }
+
         #endregion
 
         #region Private-Members
 
         private long _ContentLength;
-        private byte[] _Data; 
+        private byte[] _Data;
+        private Stream _DataStream;
 
         #endregion
 
@@ -70,7 +88,8 @@ namespace Watson
         public SyncResponse()
         {
             _ContentLength = 0;
-            _Data = null; 
+            _Data = null;
+            _DataStream = null;
         }
 
         /// <summary>
@@ -80,13 +99,32 @@ namespace Watson
         public SyncResponse(byte[] data)
         {
             _ContentLength = 0;
-            _Data = null; 
+            _Data = null;
+            _DataStream = null;
 
             if (data != null && data.Length > 0)
             {
                 _ContentLength = data.Length;
                 _Data = new byte[data.Length];
                 Buffer.BlockCopy(data, 0, _Data, 0, data.Length);
+            }
+        }
+
+        /// <summary>
+        /// Instantiate the object.
+        /// </summary>
+        /// <param name="contentLength">Content length.</param>
+        /// <param name="stream">Stream containing response data.</param>
+        public SyncResponse(long contentLength, Stream stream)
+        {
+            _ContentLength = 0;
+            _Data = null;
+            _DataStream = null;
+
+            if (contentLength > 0)
+            {
+                _ContentLength = contentLength;
+                _DataStream = stream;
             }
         }
 

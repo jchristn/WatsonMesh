@@ -14,7 +14,7 @@ namespace Watson
     /// <summary>
     /// Commonly-used static methods.
     /// </summary>
-    public static class Common
+    internal static class Common
     {
         public static string SerializeJson(object obj, bool pretty)
         {

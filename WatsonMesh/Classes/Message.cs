@@ -173,7 +173,8 @@ namespace Watson
              
             ContentLength = contentLength;
             Data = null;
-            DataStream = stream; 
+            DataStream = stream;
+            DataStream.Seek(0, SeekOrigin.Begin);
         }
 
         /// <summary>

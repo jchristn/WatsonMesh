@@ -35,13 +35,7 @@ namespace Watson
         public PendingResponse(DateTime expiration, Message msg)
         {
             Expiration = expiration;
-            ResponseMessage = msg;
-
-            if (ResponseMessage.DataStream != null)
-            {
-                ResponseMessage.Data = Common.ReadStream(ResponseMessage.ContentLength, ResponseMessage.DataStream);
-                ResponseMessage.DataStream = null;
-            }
+            ResponseMessage = msg; 
         }
 
         #endregion

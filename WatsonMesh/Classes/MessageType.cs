@@ -14,7 +14,7 @@ namespace Watson
     /// The type of message.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum MessageType
+    internal enum MessageType
     {
         [EnumMember(Value = "Data")]
         Data,

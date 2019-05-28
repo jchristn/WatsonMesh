@@ -348,12 +348,12 @@ namespace Watson
         {
             return SendSync(peer.Ip, peer.Port, timeoutMs, data, out response);
         }
-         
+
         /// <summary>
         /// Send byte data to a peer and await a response.
         /// </summary>
         /// <param name="peer">Peer IP address.</param>
-        /// <param name="data">Peer port number.</param>
+        /// <param name="data">Byte data to send.</param>
         /// <param name="response">Byte data returned by the peer.</param>
         /// <returns>True if successful.</returns>
         public bool SendSync(string ip, int port, int timeoutMs, byte[] data, out byte[] response)
@@ -368,7 +368,48 @@ namespace Watson
             if (currClient == null || currClient == default(MeshClient)) return false;
             return SendSyncRequestInternal(currClient, MessageType.Data, timeoutMs, data, out response);
         }
-         
+
+        /// <summary>
+        /// Send stream data to a peer and await a response.
+        /// </summary>
+        /// <param name="peer">Peer IP address.</param>
+        /// <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
+        /// <param name="contentLength">Number of bytes to send from the stream.</param>
+        /// <param name="stream">Stream containing the data to send.</param>
+        /// <param name="responseLength">Number of bytes returned from the peer.</param>
+        /// <param name="responseStream">Stream containing the response.</param>
+        /// <returns>True if successful.</returns>
+        public bool SendSync(Peer peer, int timeoutMs, long contentLength, Stream stream, out long responseLength, out Stream responseStream)
+        {
+            return SendSync(peer.Ip, peer.Port, timeoutMs, contentLength, stream, out responseLength, out responseStream);
+        }
+
+        /// <summary>
+        /// Send stream data to a peer and await a response.
+        /// </summary>
+        /// <param name="ip">Peer IP address.</param>
+        /// <param name="port">Peer port number.</param>
+        /// <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
+        /// <param name="contentLength">Number of bytes to send from the stream.</param>
+        /// <param name="stream">Stream containing the data to send.</param>
+        /// <param name="responseLength">Number of bytes returned from the peer.</param>
+        /// <param name="responseStream">Stream containing the response.</param>
+        /// <returns>True if successful.</returns>
+        public bool SendSync(string ip, int port, int timeoutMs, long contentLength, Stream stream, out long responseLength, out Stream responseStream)
+        {
+            responseLength = 0;
+            responseStream = null;
+            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (port < 0) throw new ArgumentException("Port must be zero or greater.");
+            if (timeoutMs < 1) throw new ArgumentException("Timeout must be zero or greater.");
+            if (contentLength < 1) throw new ArgumentException("Content length must be at least one byte.");
+            if (stream == null || !stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
+
+            MeshClient currClient = GetMeshClientByIpPort(ip, port);
+            if (currClient == null || currClient == default(MeshClient)) return false;
+            return SendSyncRequestInternal(currClient, MessageType.Data, timeoutMs, contentLength, stream, out responseLength, out responseStream);
+        }
+
         /// <summary>
         /// Broadcast byte data to all peers.
         /// </summary>
@@ -433,8 +474,25 @@ namespace Watson
             }
         }
 
+        private Peer PeerFromIpPort(string ipPort)
+        {
+            lock (_PeerLock)
+            {
+                Peer curr = _Peers.Where(p => p.IpPort.Equals(ipPort)).FirstOrDefault();
+                if (curr == null || curr == default(Peer)) return null;
+                return curr;
+            }
+        }
+
+        private void ParseIpPortString(string ipPort, out string ip, out int port)
+        {
+            int ipAddressLength = ipPort.LastIndexOf(':');
+            ip = ipPort.Substring(0, ipAddressLength);
+            port = Convert.ToInt32(ipPort.Substring(ipAddressLength + 1));
+        }
+
         #region Private-MeshClient-Callbacks
-         
+
         private bool MeshClientServerConnected(Peer peer)
         { 
             if (PeerConnected != null) return PeerConnected(peer);
@@ -472,7 +530,10 @@ namespace Watson
                 }
                 else
                 {
-                    if (AsyncMessageReceived != null) return AsyncMessageReceived(peer, currMsg.Data);
+                    if (AsyncMessageReceived != null)
+                    {
+                        return AsyncMessageReceived(peer, currMsg.Data);
+                    }
                 }
 
                 return true;
@@ -484,7 +545,7 @@ namespace Watson
         }
 
         private bool MeshClientStreamReceived(Peer peer, long contentLength, Stream stream)
-        {
+        { 
             try
             {
                 Message currMsg = new Message(stream, _Settings.ReadStreamBufferSize);
@@ -493,8 +554,9 @@ namespace Watson
                 {
                     if (SyncStreamReceived != null)
                     {
-                        SyncResponse syncResponse = SyncStreamReceived(peer, currMsg.ContentLength, currMsg.DataStream); 
-                        Message responseMsg = new Message(_Self.Ip, _Self.Port, peer.Ip, peer.Port, currMsg.TimeoutMs, false, true, currMsg.Type, syncResponse.Data); 
+                        SyncResponse syncResponse = SyncStreamReceived(peer, currMsg.ContentLength, currMsg.DataStream);
+                        syncResponse.DataStream.Seek(0, SeekOrigin.Begin); 
+                        Message responseMsg = new Message(_Self.Ip, _Self.Port, peer.Ip, peer.Port, currMsg.TimeoutMs, false, true, currMsg.Type, syncResponse.ContentLength, syncResponse.DataStream);
                         responseMsg.Id = currMsg.Id;
                         MeshClient currClient = GetMeshClientByIpPort(peer.Ip, peer.Port);
                         return SendSyncResponseInternal(currClient, responseMsg);
@@ -502,7 +564,8 @@ namespace Watson
                 }
                 else if (currMsg.SyncResponse)
                 {
-                    // add to sync responses
+                    // add to sync responses 
+                    currMsg.DataStream.Seek(0, SeekOrigin.Begin);
                     PendingResponse pendingResp = new PendingResponse(DateTime.Now.AddMilliseconds(currMsg.TimeoutMs), currMsg);
                     _PendingResponses.TryAdd(currMsg.Id, pendingResp);
                 }
@@ -569,7 +632,7 @@ namespace Watson
                 else
                 {
                     if (AsyncMessageReceived != null)
-                    { 
+                    {
                         return AsyncMessageReceived(currPeer, currMsg.Data);
                     }
                 }
@@ -598,16 +661,18 @@ namespace Watson
                 {
                     if (SyncStreamReceived != null)
                     {
-                        SyncResponse syncResponse = SyncStreamReceived(currPeer, currMsg.ContentLength, currMsg.DataStream); 
-                        Message responseMsg = new Message(_Self.Ip, _Self.Port, currPeer.Ip, currPeer.Port, currMsg.TimeoutMs, false, true, currMsg.Type, syncResponse.Data); 
-                        responseMsg.Id = currMsg.Id;
-                        MeshClient currClient = GetMeshClientByIpPort(currPeer.Ip, currPeer.Port);
+                        SyncResponse syncResponse = SyncStreamReceived(currPeer, currMsg.ContentLength, currMsg.DataStream);
+                        syncResponse.DataStream.Seek(0, SeekOrigin.Begin); 
+                        Message responseMsg = new Message(_Self.Ip, _Self.Port, currPeer.Ip, currPeer.Port, currMsg.TimeoutMs, false, true, currMsg.Type, syncResponse.ContentLength, syncResponse.DataStream);
+                        responseMsg.Id = currMsg.Id; 
+                        MeshClient currClient = GetMeshClientByIpPort(currPeer.Ip, currPeer.Port); 
                         return SendSyncResponseInternal(currClient, responseMsg);
                     }
                 }
                 else if (currMsg.SyncResponse)
                 {
-                    // add to sync responses   
+                    // add to sync responses    
+                    currMsg.DataStream.Seek(0, SeekOrigin.Begin);
                     PendingResponse pendingResp = new PendingResponse(DateTime.Now.AddMilliseconds(currMsg.TimeoutMs), currMsg);
                     _PendingResponses.TryAdd(currMsg.Id, pendingResp);
                     return true;
@@ -630,24 +695,7 @@ namespace Watson
 
         #endregion
 
-        #region Private-Utility-Methods
-
-        private Peer PeerFromIpPort(string ipPort)
-        {
-            lock (_PeerLock)
-            {
-                Peer curr = _Peers.Where(p => p.IpPort.Equals(ipPort)).FirstOrDefault();
-                if (curr == null || curr == default(Peer)) return null;
-                return curr;
-            }
-        }
-
-        private void ParseIpPortString(string ipPort, out string ip, out int port)
-        {
-            int ipAddressLength = ipPort.LastIndexOf(':');
-            ip = ipPort.Substring(0, ipAddressLength);
-            port = Convert.ToInt32(ipPort.Substring(ipAddressLength + 1));
-        }
+        #region Private-Async-Message-Methods
 
         private bool SendAsyncInternal(MeshClient client, MessageType msgType, byte[] data)
         {
@@ -699,6 +747,17 @@ namespace Watson
             return success; 
         }
 
+        #endregion
+
+        #region Private-Sync-Message-Methods
+
+        private bool AddSyncRequest(string id, int timeoutMs)
+        {
+            if (String.IsNullOrEmpty(id)) throw new ArgumentNullException(nameof(id));
+            if (_SyncRequests.ContainsKey(id)) return false;
+            return _SyncRequests.TryAdd(id, DateTime.Now.AddMilliseconds(timeoutMs));
+        }
+
         private bool SendSyncRequestInternal(MeshClient client, MessageType msgType, int timeoutMs, byte[] data, out byte[] response)
         {
             response = null;
@@ -712,7 +771,7 @@ namespace Watson
                 return GetSyncResponse(msg.Id, timeoutMs, out response);
             }
             catch (Exception)
-            { 
+            {
                 return false;
             }
             finally
@@ -721,22 +780,90 @@ namespace Watson
                 if (_SyncRequests.ContainsKey(msg.Id)) _SyncRequests.TryRemove(msg.Id, out ts);
             }
         }
-         
-        private bool SendSyncResponseInternal(MeshClient client, Message msg )
-        { 
-            byte[] msgData = msg.ToBytes();
-            return client.Send(msgData).Result; 
+
+        private bool SendSyncRequestInternal(MeshClient client, MessageType msgType, int timeoutMs, long contentLength, Stream stream, out long responseLength, out Stream responseStream)
+        {
+            responseLength = 0;
+            responseStream = null;
+            Message msg = new Message(_Self.Ip, _Self.Port, client.Peer.Ip, client.Peer.Port, timeoutMs, true, false, msgType, contentLength, stream);
+            byte[] headers = msg.ToHeaderBytes();
+
+            try
+            {
+                if (!AddSyncRequest(msg.Id, timeoutMs)) return false;
+
+                MemoryStream ms = new MemoryStream();
+                ms.Write(headers, 0, headers.Length);
+
+                long totalLength = headers.Length;
+                int bytesRead = 0;
+                long bytesRemaining = contentLength;
+                byte[] buffer = new byte[65536];
+
+                while (bytesRemaining > 0)
+                {
+                    bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    if (bytesRead > 0)
+                    {
+                        bytesRemaining -= bytesRead;
+                        totalLength += bytesRead;
+                        ms.Write(buffer, 0, bytesRead);
+                    }
+                }
+
+                ms.Seek(0, SeekOrigin.Begin);
+
+                if (!client.Send(totalLength, ms).Result) return false;
+                return GetSyncResponse(msg.Id, timeoutMs, out responseLength, out responseStream);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            finally
+            {
+                DateTime ts;
+                if (_SyncRequests.ContainsKey(msg.Id)) _SyncRequests.TryRemove(msg.Id, out ts);
+            }
         }
 
-        #endregion
-
-        #region Private-Sync-Message-Methods
-
-        private bool AddSyncRequest(string id, int timeoutMs)
+        private bool SendSyncResponseInternal(MeshClient client, Message msg)
         {
-            if (String.IsNullOrEmpty(id)) throw new ArgumentNullException(nameof(id));
-            if (_SyncRequests.ContainsKey(id)) return false;
-            return _SyncRequests.TryAdd(id, DateTime.Now.AddMilliseconds(timeoutMs));
+            if (msg.Data != null)
+            {
+                byte[] msgData = msg.ToBytes();
+                return client.Send(msgData).Result;
+            }
+            else if (msg.DataStream != null)
+            {
+                byte[] headers = msg.ToHeaderBytes();
+                MemoryStream ms = new MemoryStream();
+                ms.Write(headers, 0, headers.Length);
+
+                long totalLength = headers.Length;
+                long bytesRemaining = msg.ContentLength;
+                int bytesRead = 0;
+                byte[] buffer = new byte[65536];
+
+                while (bytesRemaining > 0)
+                {
+                    bytesRead = msg.DataStream.Read(buffer, 0, buffer.Length);
+                    if (bytesRead > 0)
+                    {
+                        bytesRemaining -= bytesRead;
+                        totalLength += bytesRead;
+                        ms.Write(buffer, 0, bytesRead);
+                    }
+                }
+
+                ms.Seek(0, SeekOrigin.Begin);
+                return client.Send(totalLength, ms).Result;
+            }
+            else
+            {
+                // nothing to send
+                return false;
+            }
         }
 
         private bool GetSyncResponse(string id, int timeoutMs, out byte[] response)
