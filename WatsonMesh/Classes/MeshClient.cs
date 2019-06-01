@@ -171,12 +171,8 @@ namespace Watson
             {
                 return await _TcpClient.SendAsync(data);
             }
-            catch (Exception e)
-            { 
-                if (Debug)
-                {
-                    Console.WriteLine(Common.SerializeJson(e, true));
-                }
+            catch (Exception)
+            {  
                 return false;
             }
         }
@@ -193,15 +189,12 @@ namespace Watson
             if (stream == null || !stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
              
             try
-            {
+            { 
+                stream.Seek(0, SeekOrigin.Begin);
                 return await _TcpClient.SendAsync(contentLength, stream);
             }
-            catch (Exception e)
-            {
-                if (Debug)
-                {
-                    Console.WriteLine(Common.SerializeJson(e, true));
-                }
+            catch (Exception)
+            { 
                 return false;
             }
         }

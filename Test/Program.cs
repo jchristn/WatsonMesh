@@ -93,18 +93,7 @@ namespace TestNetCore
                         break;
 
                     case "sendasync":
-                        userInput = InputString("Data:", "some data", false);
-                        if (_Mesh.SendAsync(
-                            InputString("Peer IP", "127.0.0.1", false),
-                            InputInteger("Peer port:", 8000, true, false),
-                            Encoding.UTF8.GetBytes(userInput)))
-                        {
-                            Console.WriteLine("Success");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Failed");
-                        }
+                        SendAsync();
                         break;
 
                     case "sendsync":
@@ -112,15 +101,7 @@ namespace TestNetCore
                         break;
                          
                     case "bcast":
-                        if (_Mesh.Broadcast(
-                            Encoding.UTF8.GetBytes(InputString("Data:", "some data", false))))
-                        {
-                            Console.WriteLine("Success");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Failed");
-                        }
+                        Broadcast(); 
                         break;
 
                     case "add":
@@ -170,6 +151,26 @@ namespace TestNetCore
             Console.WriteLine("  nodehealth  display if a connection to a peer is healthy");
         }
         
+        static void SendAsync()
+        { 
+            byte[] inputBytes = Encoding.UTF8.GetBytes(InputString("Data:", "some data", false));
+            MemoryStream inputStream = new MemoryStream(inputBytes);
+            inputStream.Seek(0, SeekOrigin.Begin);
+             
+            if (_Mesh.SendAsync(
+                InputString("Peer IP", "127.0.0.1", false),
+                InputInteger("Peer port:", 8000, true, false), 
+                inputBytes.Length,
+                inputStream))
+            {
+                Console.WriteLine("Success"); 
+            }
+            else
+            {
+                Console.WriteLine("Failed");
+            }
+        }
+
         static void SendSync()
         {
             byte[] inputBytes = Encoding.UTF8.GetBytes(InputString("Data:", "some data", false));
@@ -218,6 +219,22 @@ namespace TestNetCore
             } 
         }
 
+        static void Broadcast()
+        {
+            byte[] inputBytes = Encoding.UTF8.GetBytes(InputString("Data:", "some data", false));
+            MemoryStream inputStream = new MemoryStream(inputBytes);
+            inputStream.Seek(0, SeekOrigin.Begin);
+
+            if (_Mesh.Broadcast(inputBytes.Length, inputStream))
+            {
+                Console.WriteLine("Success");
+            }
+            else
+            {
+                Console.WriteLine("Failed");
+            } 
+        }
+
         static bool PeerConnected(Peer peer)
         {
             Console.WriteLine("Peer " + peer.ToString() + " connected");
@@ -232,13 +249,13 @@ namespace TestNetCore
 
         static bool AsyncMessageReceived(Peer peer, byte[] data)
         {
-            Console.WriteLine(peer.ToString() + ": " + Encoding.UTF8.GetString(data));
+            Console.WriteLine("Async message received from " + peer.ToString() + ": " + Encoding.UTF8.GetString(data));
             return true;
         }
 
         static SyncResponse SyncMessageReceived(Peer peer, byte[] data)
         {
-            Console.WriteLine(peer.ToString() + ": " + Encoding.UTF8.GetString(data));
+            Console.WriteLine("Sync message received from " + peer.ToString() + ": " + Encoding.UTF8.GetString(data));
             Console.WriteLine("");
             Console.WriteLine("Press ENTER and THEN type your response!");
             string resp = InputString("Response:", "This is a response", false);
@@ -247,7 +264,7 @@ namespace TestNetCore
 
         static bool AsyncStreamReceived(Peer peer, long contentLength, Stream stream)
         {
-            Console.WriteLine(peer.ToString() + ": " + contentLength + " bytes in stream");
+            Console.WriteLine("Async stream received from " + peer.ToString() + ": " + contentLength + " bytes in stream");
             byte[] data = ReadStream(contentLength, stream);
             Console.WriteLine(Encoding.UTF8.GetString(data)); 
             return true;
@@ -255,7 +272,7 @@ namespace TestNetCore
 
         static SyncResponse SyncStreamReceived(Peer peer, long contentLength, Stream stream)
         {
-            Console.WriteLine(peer.ToString() + ": " + contentLength + " bytes in stream");
+            Console.WriteLine("Sync stream received from " + peer.ToString() + ": " + contentLength + " bytes in stream");
             byte[] data = ReadStream(contentLength, stream);
             Console.WriteLine(Encoding.UTF8.GetString(data));
             Console.WriteLine("");

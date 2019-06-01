@@ -707,8 +707,34 @@ namespace Watson
         private bool SendAsyncInternal(MeshClient client, MessageType msgType, long contentLength, Stream stream)
         {
             Message msg = new Message(_Self.Ip, _Self.Port, client.Peer.Ip, client.Peer.Port, 0, false, false, msgType, contentLength, stream);
-            byte[] msgData = msg.ToBytes();
-            return client.Send(msgData).Result;
+            byte[] headerBytes = msg.ToHeaderBytes();  
+            long totalLen = headerBytes.Length;
+
+            MemoryStream ms = new MemoryStream();
+            ms.Write(headerBytes, 0, headerBytes.Length);
+
+            if (contentLength > 0 && stream != null && stream.CanRead)
+            {
+                if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
+
+                int bytesRead = 0;
+                long bytesRemaining = contentLength;
+                byte[] buffer = new byte[_Settings.ReadStreamBufferSize];
+
+                while (bytesRemaining > 0)
+                {
+                    bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    if (bytesRead > 0)
+                    {
+                        ms.Write(buffer, 0, bytesRead);
+                        bytesRemaining -= bytesRead;
+                        totalLen += bytesRead;
+                    }
+                }
+            }
+
+            ms.Seek(0, SeekOrigin.Begin); 
+            return client.Send(totalLen, ms).Result;
         }
 
         private bool BroadcastAsyncInternal(MessageType msgType, byte[] data)
@@ -731,8 +757,32 @@ namespace Watson
 
         private bool BroadcastAsyncInternal(MessageType msgType, long contentLength, Stream stream)
         { 
-            Message msg = new Message(_Self.Ip, _Self.Port, "0.0.0.0", 0, 0, false, false, msgType, contentLength, stream);
-            byte[] msgData = msg.ToBytes();
+            Message msg = new Message(_Self.Ip, _Self.Port, "0.0.0.0", 0, 0, false, false, msgType, contentLength, stream); 
+            byte[] headerBytes = msg.ToHeaderBytes();
+            long totalLen = headerBytes.Length;
+
+            MemoryStream ms = new MemoryStream();
+            ms.Write(headerBytes, 0, headerBytes.Length);
+
+            if (contentLength > 0 && stream != null && stream.CanRead)
+            {
+                if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
+
+                int bytesRead = 0;
+                long bytesRemaining = contentLength;
+                byte[] buffer = new byte[_Settings.ReadStreamBufferSize];
+
+                while (bytesRemaining > 0)
+                {
+                    bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    if (bytesRead > 0)
+                    {
+                        ms.Write(buffer, 0, bytesRead);
+                        bytesRemaining -= bytesRead;
+                        totalLen += bytesRead;
+                    }
+                }
+            }
 
             bool success = true;
 
@@ -740,7 +790,8 @@ namespace Watson
             {
                 foreach (MeshClient currClient in _Clients)
                 {
-                    success = success && currClient.Send(msgData).Result;
+                    ms.Seek(0, SeekOrigin.Begin);
+                    success = success && currClient.Send(totalLen, ms).Result;
                 }
             }
 
@@ -798,7 +849,7 @@ namespace Watson
                 long totalLength = headers.Length;
                 int bytesRead = 0;
                 long bytesRemaining = contentLength;
-                byte[] buffer = new byte[65536];
+                byte[] buffer = new byte[_Settings.ReadStreamBufferSize];
 
                 while (bytesRemaining > 0)
                 {
@@ -843,7 +894,7 @@ namespace Watson
                 long totalLength = headers.Length;
                 long bytesRemaining = msg.ContentLength;
                 int bytesRead = 0;
-                byte[] buffer = new byte[65536];
+                byte[] buffer = new byte[_Settings.ReadStreamBufferSize];
 
                 while (bytesRemaining > 0)
                 {
