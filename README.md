@@ -1,3 +1,5 @@
+![alt tag](https://github.com/jchristn/watsonmesh/blob/master/assets/watson.ico)
+
 # Watson Mesh Networking
 
 [![][nuget-img]][nuget]
