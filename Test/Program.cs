@@ -23,24 +23,22 @@ namespace TestNetCore
             _Ip = InputString("Listener IP:", "127.0.0.1", false);
             _Port = InputInteger("Listener Port:", 8000, true, false);
 
-            _Settings = new MeshSettings();
+            _Settings = new MeshSettings(); 
             _Settings.AcceptInvalidCertificates = true;
             _Settings.AutomaticReconnect = true; 
             _Settings.MutuallyAuthenticate = false;
-            _Settings.PresharedKey = null;
-            _Settings.ReadDataStream = false;
+            _Settings.PresharedKey = null; 
             _Settings.ReadStreamBufferSize = 65536;
             _Settings.ReconnectIntervalMs = 1000;
+            // _Settings.Debug = true;
 
             _Self = new Peer(_Ip, _Port);
 
             _Mesh = new WatsonMesh(_Settings, _Self);
             _Mesh.PeerConnected = PeerConnected;
             _Mesh.PeerDisconnected = PeerDisconnected;
-            _Mesh.AsyncMessageReceived = AsyncMessageReceived;
-            _Mesh.SyncMessageReceived = SyncMessageReceived;
-            _Mesh.AsyncStreamReceived = AsyncStreamReceived;
-            _Mesh.SyncStreamReceived = SyncStreamReceived;
+            _Mesh.MessageReceived = MessageReceived;
+            _Mesh.SyncMessageReceived = SyncMessageReceived; 
 
             _Mesh.Start();
 
@@ -92,16 +90,16 @@ namespace TestNetCore
                         }
                         break;
 
-                    case "sendasync":
-                        SendAsync();
+                    case "send":
+                        Send().Wait();
                         break;
 
                     case "sendsync":
-                        SendSync();
+                        SendSync().Wait();
                         break;
                          
                     case "bcast":
-                        Broadcast(); 
+                        Broadcast().Wait();
                         break;
 
                     case "add":
@@ -144,20 +142,20 @@ namespace TestNetCore
             Console.WriteLine("  failed      list failed peers");
             Console.WriteLine("  add         add a peer");
             Console.WriteLine("  del         delete a peer");
-            Console.WriteLine("  sendasync   send a message to a peer asynchronously");
+            Console.WriteLine("  send        send a message to a peer asynchronously");
             Console.WriteLine("  sendsync    send a message to a peer and await a response"); 
             Console.WriteLine("  bcast       send a message to all peers");
             Console.WriteLine("  health      display if the mesh is healthy");
             Console.WriteLine("  nodehealth  display if a connection to a peer is healthy");
         }
         
-        static void SendAsync()
+        static async Task Send()
         { 
             byte[] inputBytes = Encoding.UTF8.GetBytes(InputString("Data:", "some data", false));
             MemoryStream inputStream = new MemoryStream(inputBytes);
             inputStream.Seek(0, SeekOrigin.Begin);
              
-            if (_Mesh.SendAsync(
+            if (await _Mesh.Send(
                 InputString("Peer IP", "127.0.0.1", false),
                 InputInteger("Peer port:", 8000, true, false), 
                 inputBytes.Length,
@@ -171,32 +169,29 @@ namespace TestNetCore
             }
         }
 
-        static void SendSync()
+        static async Task SendSync()
         {
             byte[] inputBytes = Encoding.UTF8.GetBytes(InputString("Data:", "some data", false));
             MemoryStream inputStream = new MemoryStream(inputBytes);
             inputStream.Seek(0, SeekOrigin.Begin);
-
-            long responseLength = 0;
-            Stream responseStream = null;
              
-            if (_Mesh.SendSync(
+            SyncResponse resp = await _Mesh.SendSync(
                 InputString("Peer IP", "127.0.0.1", false),
                 InputInteger("Peer port:", 8000, true, false),
                 InputInteger("Timeout ms:", 15000, true, false),
-                inputBytes.Length, 
-                inputStream, 
-                out responseLength,
-                out responseStream))
+                inputBytes.Length,
+                inputStream);
+
+            if (resp != null)
             {
-                Console.WriteLine("Success: " + responseLength + " bytes");
-                if (responseLength > 0)
+                Console.WriteLine("Status: " + resp.Status.ToString());
+                if (resp.ContentLength > 0)
                 {
-                    if (responseStream != null)
+                    if (resp.Data != null)
                     {
-                        if (responseStream.CanRead)
+                        if (resp.Data.CanRead)
                         {
-                            Console.WriteLine("Response: " + Encoding.UTF8.GetString(ReadStream(responseLength, responseStream)));
+                            Console.WriteLine("Response: " + Encoding.UTF8.GetString(ReadStream(resp.ContentLength, resp.Data)));
                         }
                         else
                         {
@@ -219,13 +214,13 @@ namespace TestNetCore
             } 
         }
 
-        static void Broadcast()
+        static async Task Broadcast()
         {
             byte[] inputBytes = Encoding.UTF8.GetBytes(InputString("Data:", "some data", false));
             MemoryStream inputStream = new MemoryStream(inputBytes);
             inputStream.Seek(0, SeekOrigin.Begin);
 
-            if (_Mesh.Broadcast(inputBytes.Length, inputStream))
+            if (await _Mesh.Broadcast(inputBytes.Length, inputStream))
             {
                 Console.WriteLine("Success");
             }
@@ -235,53 +230,39 @@ namespace TestNetCore
             } 
         }
 
-        static bool PeerConnected(Peer peer)
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        static async Task PeerConnected(Peer peer)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            Console.WriteLine("Peer " + peer.ToString() + " connected");
-            return true;
+            Console.WriteLine("Peer " + peer.ToString() + " connected"); 
         }
 
-        static bool PeerDisconnected(Peer peer)
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        static async Task PeerDisconnected(Peer peer)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            Console.WriteLine("Peer " + peer.ToString() + " disconnected");
-            return true;
+            Console.WriteLine("Peer " + peer.ToString() + " disconnected"); 
         }
 
-        static bool AsyncMessageReceived(Peer peer, byte[] data)
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        static async Task MessageReceived(Peer peer, long contentLength, Stream stream)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            Console.WriteLine("Async message received from " + peer.ToString() + ": " + Encoding.UTF8.GetString(data));
-            return true;
+            Console.WriteLine(peer.ToString() + " " + contentLength + " bytes: " + Encoding.UTF8.GetString(ReadStream(contentLength, stream)));
         }
-
-        static SyncResponse SyncMessageReceived(Peer peer, byte[] data)
+         
+        static SyncResponse SyncMessageReceived(Peer peer, long contentLength, Stream stream)
         {
-            Console.WriteLine("Sync message received from " + peer.ToString() + ": " + Encoding.UTF8.GetString(data));
             Console.WriteLine("");
-            Console.WriteLine("Press ENTER and THEN type your response!");
-            string resp = InputString("Response:", "This is a response", false);
-            return new SyncResponse(Encoding.UTF8.GetBytes(resp));
-        }
-
-        static bool AsyncStreamReceived(Peer peer, long contentLength, Stream stream)
-        {
-            Console.WriteLine("Async stream received from " + peer.ToString() + ": " + contentLength + " bytes in stream");
-            byte[] data = ReadStream(contentLength, stream);
-            Console.WriteLine(Encoding.UTF8.GetString(data)); 
-            return true;
-        }
-
-        static SyncResponse SyncStreamReceived(Peer peer, long contentLength, Stream stream)
-        {
-            Console.WriteLine("Sync stream received from " + peer.ToString() + ": " + contentLength + " bytes in stream");
-            byte[] data = ReadStream(contentLength, stream);
-            Console.WriteLine(Encoding.UTF8.GetString(data));
+            Console.WriteLine("*** Synchronous Request ***");
+            Console.WriteLine(peer.ToString() + " " + contentLength + " bytes: " + Encoding.UTF8.GetString(ReadStream(contentLength, stream))); 
             Console.WriteLine("");
             Console.WriteLine("Press ENTER and THEN type your response!"); 
             string resp = InputString("Response:", "This is a response", false);
             byte[] respData = Encoding.UTF8.GetBytes(resp);
             MemoryStream ms = new MemoryStream(respData);
             ms.Seek(0, SeekOrigin.Begin);
-            return new SyncResponse(respData.Length, ms);
+            return new SyncResponse(SyncResponseStatus.Success, respData.Length, ms);
         } 
 
         static bool InputBoolean(string question, bool yesDefault)

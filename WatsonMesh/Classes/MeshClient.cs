@@ -16,12 +16,7 @@ namespace Watson
     internal class MeshClient : IDisposable
     {
         #region Public-Members
-
-        /// <summary>
-        /// Enable or disable console debugging.
-        /// </summary>
-        public bool Debug = false;
-
+         
         /// <summary>
         /// The peer object.
         /// </summary>
@@ -35,33 +30,28 @@ namespace Watson
         /// <summary>
         /// Function to call when authentication succeeded.
         /// </summary>
-        public Func<bool> AuthenticationSucceeded = null;
+        public Func<Task> AuthenticationSucceeded = null;
 
         /// <summary>
         /// Function to call when authentication failed.
         /// </summary>
-        public Func<bool> AuthenticationFailure = null;
+        public Func<Task> AuthenticationFailure = null;
 
         /// <summary>
         /// Function to call when a connection is established with a remote client.
         /// </summary>
-        public Func<Peer, bool> ServerConnected = null;
+        public Func<Peer, Task> ServerConnected = null;
 
         /// <summary>
         /// Function to call when a connection is severed with a remote client.
         /// </summary>
-        public Func<Peer, bool> ServerDisconnected = null;
-
-        /// <summary>
-        /// Function to call when a message is received from a remote client.
-        /// </summary>
-        public Func<Peer, byte[], bool> MessageReceived = null;
-
+        public Func<Peer, Task> ServerDisconnected = null;
+         
         /// <summary>
         /// Function to call when a message is received from a remote client.
         /// Read the specified number of bytes from the stream.
         /// </summary>
-        public Func<Peer, long, Stream, bool> StreamReceived = null;
+        public Func<Peer, long, Stream, Task> MessageReceived = null;
           
         /// <summary>
         /// Check if the local client is connected to the remote server.
@@ -136,17 +126,18 @@ namespace Watson
             }
 
             _TcpClient.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
-            _TcpClient.MutuallyAuthenticate = _Settings.MutuallyAuthenticate;
-            _TcpClient.ReadDataStream = _Settings.ReadDataStream;
+            _TcpClient.MutuallyAuthenticate = _Settings.MutuallyAuthenticate; 
             _TcpClient.ReadStreamBufferSize = _Settings.ReadStreamBufferSize;
+            _TcpClient.ReadDataStream = false;
+            _TcpClient.Debug = _Settings.Debug;
 
             _TcpClient.AuthenticationRequested = MeshClientAuthenticationRequested;
             _TcpClient.AuthenticationSucceeded = MeshClientAuthenticationSucceeded;
             _TcpClient.AuthenticationFailure = MeshClientAuthenticationFailure;
             _TcpClient.ServerConnected = MeshClientServerConnected;
             _TcpClient.ServerDisconnected = MeshClientServerDisconnected;
+            _TcpClient.MessageReceived = null;
             _TcpClient.StreamReceived = MeshClientStreamReceived;
-            _TcpClient.MessageReceived = MeshClientMessageReceived;
 
             try
             {
@@ -225,65 +216,30 @@ namespace Watson
             else throw new AuthenticationException("Cannot authenticate using supplied preshared key to peer " + Peer.ToString());
         }
 
-        private bool MeshClientAuthenticationSucceeded()
+        private async Task MeshClientAuthenticationSucceeded()
         {
-            if (AuthenticationSucceeded != null) return AuthenticationSucceeded();
-            return true;
+            if (AuthenticationSucceeded != null) await AuthenticationSucceeded();
         }
 
-        private bool MeshClientAuthenticationFailure()
+        private async Task MeshClientAuthenticationFailure()
         {
-            if (AuthenticationFailure != null) return AuthenticationFailure();
-            return true;
+            if (AuthenticationFailure != null) await AuthenticationFailure();
         }
 
-        private bool MeshClientServerConnected()
+        private async Task MeshClientServerConnected()
         {
-            if (ServerConnected != null)
-            {
-                return ServerConnected(Peer);
-            }
-            else
-            {
-                return true;
-            }
+            if (ServerConnected != null) await ServerConnected(Peer);
         }
 
-        private bool MeshClientServerDisconnected()
+        private async Task MeshClientServerDisconnected()
         { 
-            Task.Run(() => ReconnectToServer());
-            if (ServerDisconnected != null)
-            {
-                return ServerDisconnected(Peer);
-            }
-            else
-            {
-                return true;
-            }
+            Task unawaited = Task.Run(() => ReconnectToServer());
+            if (ServerDisconnected != null) await ServerDisconnected(Peer);
         }
-
-        private bool MeshClientMessageReceived(byte[] data)
+         
+        private async Task MeshClientStreamReceived(long contentLength, Stream stream)
         {
-            if (MessageReceived != null)
-            {
-                return MessageReceived(Peer, data);
-            }
-            else
-            {
-                return true;
-            }
-        }
-
-        private bool MeshClientStreamReceived(long contentLength, Stream stream)
-        {
-            if (StreamReceived != null)
-            {
-                return StreamReceived(Peer, contentLength, stream);
-            }
-            else
-            {
-                return true;
-            }
+            if (MessageReceived != null) await MessageReceived(Peer, contentLength, stream);
         }
 
         private void ReconnectToServer()

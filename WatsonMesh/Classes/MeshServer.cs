@@ -19,23 +19,18 @@ namespace Watson
         /// <summary>
         /// Function to call when a connection is established with a remote client.
         /// </summary>
-        public Func<string, bool> ClientConnected = null;
+        public Func<string, Task> ClientConnected = null;
 
         /// <summary>
         /// Function to call when a connection is severed with a remote client.
         /// </summary>
-        public Func<string, bool> ClientDisconnected = null;
-
-        /// <summary>
-        /// Function to call when a message is received from a remote client.
-        /// </summary>
-        public Func<string, byte[], bool> MessageReceived = null;
-
+        public Func<string, Task> ClientDisconnected = null;
+         
         /// <summary>
         /// Function to call when a message is received from a remote client.
         /// Read the specified number of bytes from the stream.
         /// </summary>
-        public Func<string, long, Stream, bool> StreamReceived = null;
+        public Func<string, long, Stream, Task> MessageReceived = null;
          
         #endregion
 
@@ -89,13 +84,14 @@ namespace Watson
 
             _TcpServer.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
             _TcpServer.MutuallyAuthenticate = _Settings.MutuallyAuthenticate;
-            _TcpServer.PresharedKey = _Settings.PresharedKey;
-            _TcpServer.ReadDataStream = _Settings.ReadDataStream;
+            _TcpServer.PresharedKey = _Settings.PresharedKey; 
             _TcpServer.ReadStreamBufferSize = _Settings.ReadStreamBufferSize;
+            _TcpServer.ReadDataStream = false;
+            _TcpServer.Debug = _Settings.Debug;
 
             _TcpServer.ClientConnected = MeshServerClientConnected;
             _TcpServer.ClientDisconnected = MeshServerClientDisconnected;
-            _TcpServer.MessageReceived = MeshServerMessageReceived;
+            _TcpServer.MessageReceived = null;
             _TcpServer.StreamReceived = MeshServerStreamReceived;
 
             _TcpServer.Start();
@@ -116,52 +112,19 @@ namespace Watson
 
         #region Private-Methods
 
-        private bool MeshServerClientConnected(string ipPort)
+        private async Task MeshServerClientConnected(string ipPort)
         { 
-            if (ClientConnected != null)
-            { 
-                return ClientConnected(ipPort);
-            }
-            else
-            { 
-                return true;
-            }
+            if (ClientConnected != null) await ClientConnected(ipPort);
         }
 
-        private bool MeshServerClientDisconnected(string ipPort)
+        private async Task MeshServerClientDisconnected(string ipPort)
         { 
-            if (ClientDisconnected != null)
-            { 
-                return ClientDisconnected(ipPort);
-            }
-            else
-            { 
-                return true;
-            }
+            if (ClientDisconnected != null) await ClientDisconnected(ipPort);
         }
-
-        private bool MeshServerMessageReceived(string ipPort, byte[] data)
+         
+        private async Task MeshServerStreamReceived(string ipPort, long contentLength, Stream stream)
         { 
-            if (MessageReceived != null)
-            { 
-                return MessageReceived(ipPort, data);
-            }
-            else
-            { 
-                return true;
-            }
-        }
-
-        private bool MeshServerStreamReceived(string ipPort, long contentLength, Stream stream)
-        { 
-            if (StreamReceived != null)
-            { 
-                return StreamReceived(ipPort, contentLength, stream);
-            }
-            else
-            { 
-                return true;
-            }
+            if (MessageReceived != null) await MessageReceived(ipPort, contentLength, stream); 
         }
 
         #endregion

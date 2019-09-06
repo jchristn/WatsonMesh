@@ -13,6 +13,11 @@ namespace Watson
         #region Public-Members
 
         /// <summary>
+        /// Synchronous response status.
+        /// </summary>
+        public SyncResponseStatus Status = SyncResponseStatus.Unknown;
+
+        /// <summary>
         /// Response data length.
         /// </summary>
         public long ContentLength
@@ -29,9 +34,9 @@ namespace Watson
         }
 
         /// <summary>
-        /// Response data.
+        /// Stream containing response data.  Set ContentLength first.
         /// </summary>
-        public byte[] Data
+        public Stream Data
         {
             get
             {
@@ -39,44 +44,22 @@ namespace Watson
             }
             set
             {
-                if (value != null)
-                {
-                    _Data = new byte[value.Length];
-                    Buffer.BlockCopy(value, 0, _Data, 0, value.Length);
-                    _ContentLength = value.Length;
-                }
-                else
-                {
-                    _Data = null;
-                    _ContentLength = 0;
-                }
+                if (_ContentLength <= 0) throw new ArgumentException("Set ContentLength before setting DataStream.");
+                _Data = value;
             }
         }
 
         /// <summary>
-        /// Stream containing response data.  Set ContentLength first.
+        /// Exception associated with failure, if applicable.
         /// </summary>
-        public Stream DataStream
-        {
-            get
-            {
-                return _DataStream;
-            }
-            set
-            {
-                if (_ContentLength <= 0) throw new ArgumentException("Set ContentLength before setting DataStream.");
-                _DataStream = value;
-                _Data = null;
-            }
-        }
+        public Exception Exception = null;
 
         #endregion
 
         #region Private-Members
 
-        private long _ContentLength;
-        private byte[] _Data;
-        private Stream _DataStream;
+        private long _ContentLength = 0;
+        private Stream _Data = null;
 
         #endregion
 
@@ -87,27 +70,9 @@ namespace Watson
         /// </summary>
         public SyncResponse()
         {
+            Status = SyncResponseStatus.Unknown;
             _ContentLength = 0;
             _Data = null;
-            _DataStream = null;
-        }
-
-        /// <summary>
-        /// Instantiate the object.
-        /// </summary>
-        /// <param name="data">Byte array containing response data.</param>
-        public SyncResponse(byte[] data)
-        {
-            _ContentLength = 0;
-            _Data = null;
-            _DataStream = null;
-
-            if (data != null && data.Length > 0)
-            {
-                _ContentLength = data.Length;
-                _Data = new byte[data.Length];
-                Buffer.BlockCopy(data, 0, _Data, 0, data.Length);
-            }
         }
 
         /// <summary>
@@ -115,16 +80,16 @@ namespace Watson
         /// </summary>
         /// <param name="contentLength">Content length.</param>
         /// <param name="stream">Stream containing response data.</param>
-        public SyncResponse(long contentLength, Stream stream)
+        public SyncResponse(SyncResponseStatus status, long contentLength, Stream stream)
         {
+            Status = status;
             _ContentLength = 0;
             _Data = null;
-            _DataStream = null;
 
             if (contentLength > 0)
             {
                 _ContentLength = contentLength;
-                _DataStream = stream;
+                _Data = stream;
             }
         }
 

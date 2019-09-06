@@ -5,9 +5,7 @@ using System.Linq;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Threading.Tasks; 
 
 namespace Watson
 {
@@ -15,62 +13,7 @@ namespace Watson
     /// Commonly-used static methods.
     /// </summary>
     internal static class Common
-    {
-        public static string SerializeJson(object obj, bool pretty)
-        {
-            if (obj == null) return null;
-            string json;
-
-            if (pretty)
-            {
-                json = JsonConvert.SerializeObject(
-                  obj,
-                  Newtonsoft.Json.Formatting.Indented,
-                  new JsonSerializerSettings
-                  {
-                      NullValueHandling = NullValueHandling.Ignore,
-                      DateTimeZoneHandling = DateTimeZoneHandling.Utc,
-                  });
-            }
-            else
-            {
-                json = JsonConvert.SerializeObject(obj,
-                  new JsonSerializerSettings
-                  {
-                      NullValueHandling = NullValueHandling.Ignore,
-                      DateTimeZoneHandling = DateTimeZoneHandling.Utc
-                  });
-            }
-
-            return json;
-        }
-
-        public static T DeserializeJson<T>(string json)
-        {
-            if (String.IsNullOrEmpty(json)) throw new ArgumentNullException(nameof(json));
-
-            try
-            {
-                return JsonConvert.DeserializeObject<T>(json);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("");
-                Console.WriteLine("Exception while deserializing:");
-                Console.WriteLine(json);
-                Console.WriteLine("");
-                Console.WriteLine(SerializeJson(e, true));
-                Console.WriteLine("");
-                throw e;
-            }
-        }
-
-        public static T DeserializeJson<T>(byte[] data)
-        {
-            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-            return DeserializeJson<T>(Encoding.UTF8.GetString(data));
-        }
-
+    { 
         public static bool InputBoolean(string question, bool yesDefault)
         {
             Console.Write(question);
@@ -299,6 +242,20 @@ namespace Watson
             }
 
             return ret;
+        }
+
+        public static string BytesToHex(byte[] ba)
+        {
+            return BitConverter.ToString(ba).Replace("-", "");
+        }
+
+        public static byte[] HexToBytes(String hex)
+        {
+            int NumberChars = hex.Length;
+            byte[] bytes = new byte[NumberChars / 2];
+            for (int i = 0; i < NumberChars; i += 2)
+                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+            return bytes;
         }
 
         public static void LogException(Exception e)
