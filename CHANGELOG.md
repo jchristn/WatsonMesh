@@ -2,11 +2,16 @@
 
 ## Current Version
 
+v2.0.3
+
+- XML documentation
+- Update to latest WatsonTcp (again for XML documentation)
+
+## Previous Versions
+
 v2.0.2
 
 - Dependency updates to better support graceful handling of disconnects
-
-## Previous Versions
 
 v2.0.1
 

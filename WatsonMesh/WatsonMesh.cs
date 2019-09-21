@@ -56,7 +56,7 @@ namespace Watson
         private readonly object _ClientsLock;
         private List<MeshClient> _Clients;
 
-        public ConcurrentDictionary<string, DateTime> _SyncRequests;
+        private ConcurrentDictionary<string, DateTime> _SyncRequests;
         private ConcurrentDictionary<string, PendingResponse> _PendingResponses;
 
         private Timer _Timer;

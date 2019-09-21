@@ -9,12 +9,9 @@
 
 A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.
 
-## New in v2.0.x
+## New in v2.0.3
 
-- Breaking changes!  Task-based callbacks
-- Simplified constructors and APIs
-- Dependency updates to better support graceful handling of disconnects
-- Bugfixes
+- XML documentation
 
 ## What is Watson Mesh?
 

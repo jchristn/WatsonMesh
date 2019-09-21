@@ -78,6 +78,7 @@ namespace Watson
         /// <summary>
         /// Instantiate the object.
         /// </summary>
+        /// <param name="status">Response status.</param>
         /// <param name="contentLength">Content length.</param>
         /// <param name="stream">Stream containing response data.</param>
         public SyncResponse(SyncResponseStatus status, long contentLength, Stream stream)

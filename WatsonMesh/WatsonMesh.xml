@@ -1,0 +1,623 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>WatsonMesh</name>
+    </assembly>
+    <members>
+        <member name="T:Watson.Common">
+            <summary>
+            Commonly-used static methods.
+            </summary>
+        </member>
+        <member name="T:Watson.MeshClient">
+            <summary>
+            Watson mesh networking client.
+            </summary>
+        </member>
+        <member name="P:Watson.MeshClient.Peer">
+            <summary>
+            The peer object.
+            </summary>
+        </member>
+        <member name="F:Watson.MeshClient.AuthenticationRequested">
+            <summary>
+            Function to call when authentication is requested.
+            </summary>
+        </member>
+        <member name="F:Watson.MeshClient.AuthenticationSucceeded">
+            <summary>
+            Function to call when authentication succeeded.
+            </summary>
+        </member>
+        <member name="F:Watson.MeshClient.AuthenticationFailure">
+            <summary>
+            Function to call when authentication failed.
+            </summary>
+        </member>
+        <member name="F:Watson.MeshClient.ServerConnected">
+            <summary>
+            Function to call when a connection is established with a remote client.
+            </summary>
+        </member>
+        <member name="F:Watson.MeshClient.ServerDisconnected">
+            <summary>
+            Function to call when a connection is severed with a remote client.
+            </summary>
+        </member>
+        <member name="F:Watson.MeshClient.MessageReceived">
+            <summary>
+            Function to call when a message is received from a remote client.
+            Read the specified number of bytes from the stream.
+            </summary>
+        </member>
+        <member name="P:Watson.MeshClient.Connected">
+            <summary>
+            Check if the local client is connected to the remote server.
+            </summary>
+            <returns>True if connected.</returns>
+        </member>
+        <member name="M:Watson.MeshClient.#ctor(Watson.MeshSettings,Watson.Peer)">
+            <summary>
+            Instantiate the object.
+            </summary>
+            <param name="settings">Settings.</param>
+            <param name="peer">Peer.</param>
+        </member>
+        <member name="M:Watson.MeshClient.Dispose">
+            <summary>
+            Tear down the client and dispose of background workers.
+            </summary>
+        </member>
+        <member name="M:Watson.MeshClient.Start">
+            <summary>
+            Establish TCP (with or without SSL) connection to the peer server.
+            </summary>
+        </member>
+        <member name="M:Watson.MeshClient.Send(System.Byte[])">
+            <summary>
+            Send data to the remote server.
+            </summary>
+            <param name="data">Byte data to send.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Watson.MeshClient.Send(System.Int64,System.IO.Stream)">
+            <summary>
+            Send data to the remote server.
+            </summary>
+            <param name="contentLength">The number of bytes to read from the stream.</param>
+            <param name="stream">The stream containing the data to send.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="T:Watson.MeshServer">
+            <summary>
+            Watson mesh networking server.
+            </summary>
+        </member>
+        <member name="F:Watson.MeshServer.ClientConnected">
+            <summary>
+            Function to call when a connection is established with a remote client.
+            </summary>
+        </member>
+        <member name="F:Watson.MeshServer.ClientDisconnected">
+            <summary>
+            Function to call when a connection is severed with a remote client.
+            </summary>
+        </member>
+        <member name="F:Watson.MeshServer.MessageReceived">
+            <summary>
+            Function to call when a message is received from a remote client.
+            Read the specified number of bytes from the stream.
+            </summary>
+        </member>
+        <member name="M:Watson.MeshServer.#ctor(Watson.MeshSettings,Watson.Peer)">
+            <summary>
+            Instantiate the object.
+            </summary>
+            <param name="settings">Settings.</param>
+            <param name="self">Node details for the local node.</param>
+        </member>
+        <member name="M:Watson.MeshServer.Start">
+            <summary>
+            Start the Watson mesh server.
+            </summary>
+        </member>
+        <member name="M:Watson.MeshServer.DisconnectClient(System.String)">
+            <summary>
+            Disconnect a remote client.
+            </summary>
+            <param name="ipPort">IP address and port of the remoteclient, of the form IP:port.</param>
+        </member>
+        <member name="T:Watson.MeshSettings">
+            <summary>
+            Settings for the mesh network.
+            </summary>
+        </member>
+        <member name="F:Watson.MeshSettings.Debug">
+            <summary>
+            Enable or disable console debugging.
+            </summary>
+        </member>
+        <member name="P:Watson.MeshSettings.AutomaticReconnect">
+            <summary>
+            Indicate whether or not to automatically reconnect when a connection is severed.
+            </summary>
+        </member>
+        <member name="P:Watson.MeshSettings.ReconnectIntervalMs">
+            <summary>
+            Reconnect attempt interval, in milliseconds.
+            </summary>
+        </member>
+        <member name="F:Watson.MeshSettings.PresharedKey">
+            <summary>
+            Shared secret password to use to mutually authenticate mesh network members.
+            </summary>
+        </member>
+        <member name="P:Watson.MeshSettings.AcceptInvalidCertificates">
+            <summary>
+            Enable or disable acceptance of invalid or unverifiable SSL certificates.
+            </summary>
+        </member>
+        <member name="P:Watson.MeshSettings.MutuallyAuthenticate">
+            <summary>
+            Enable or disable mutual authentication when using SSL.
+            </summary>
+        </member>
+        <member name="P:Watson.MeshSettings.ReadStreamBufferSize">
+            <summary>
+            Buffer size to use when reading input and output streams.  Default is 65536.
+            </summary>
+        </member>
+        <member name="M:Watson.MeshSettings.#ctor">
+            <summary>
+            Instantiate the object.
+            </summary>
+        </member>
+        <member name="T:Watson.Message">
+            <summary>
+            Message object, exchanged between peers in the mesh network.
+            </summary>
+        </member>
+        <member name="P:Watson.Message.Id">
+            <summary>
+            Unique ID for the message. 
+            </summary>
+        </member>
+        <member name="P:Watson.Message.SyncRequest">
+            <summary>
+            Indicates if the message is a synchronous message request.
+            </summary>
+        </member>
+        <member name="P:Watson.Message.SyncResponse">
+            <summary>
+            Indicates if the message is a response to a synchronous message request.
+            </summary>
+        </member>
+        <member name="P:Watson.Message.TimeoutMs">
+            <summary>
+            For synchronous requests or responses, the number of milliseconds before the message expires.
+            </summary>
+        </member>
+        <member name="P:Watson.Message.SourceIp">
+            <summary>
+            The sender's server IP.
+            </summary>
+        </member>
+        <member name="P:Watson.Message.SourcePort">
+            <summary>
+            The sender's server port.
+            </summary>
+        </member>
+        <member name="P:Watson.Message.DestinationIp">
+            <summary>
+            The receiver's server IP.
+            </summary>
+        </member>
+        <member name="P:Watson.Message.DestinationPort">
+            <summary>
+            The receiver's server port.
+            </summary>
+        </member>
+        <member name="P:Watson.Message.Type">
+            <summary>
+            The type of message being sent.
+            </summary>
+        </member>
+        <member name="P:Watson.Message.ContentLength">
+            <summary>
+            Content length of the data.
+            </summary>
+        </member>
+        <member name="P:Watson.Message.Data">
+            <summary>
+            The stream containing the data being transmitted.
+            </summary>
+        </member>
+        <member name="M:Watson.Message.#ctor">
+            <summary>
+            DO NOT USE.  Use the more specific constructor.
+            </summary>
+        </member>
+        <member name="M:Watson.Message.#ctor(System.String,System.Int32,System.String,System.Int32,System.Nullable{System.Int32},System.Boolean,System.Boolean,Watson.MessageType,System.Int64,System.IO.Stream)">
+            <summary>
+            Instantiate the object.
+            </summary>
+            <param name="sourceIp">The sender's server IP.</param>
+            <param name="sourcePort">The sender's server port.</param>
+            <param name="recipientIp">The recipient's server IP.</param>
+            <param name="recipientPort">The recipient's server port.</param>
+            <param name="timeoutMs">For synchronous requests or responses, the number of milliseconds before the message expires.</param>
+            <param name="syncRequest">Indicates if the message is a synchronous message request.</param>
+            <param name="syncResponse">Indicates if the message is a response to a synchronous message request.</param>
+            <param name="msgType">The type of message being sent.</param>
+            <param name="contentLength">The number of bytes to read from the stream.</param>
+            <param name="stream">The stream from which message data should be read.</param>
+        </member>
+        <member name="M:Watson.Message.#ctor(System.IO.Stream,System.Int32)">
+            <summary>
+            Construct a message from a stream.
+            </summary>
+            <param name="stream">Stream.</param>
+            <param name="bufferLen">Buffer size to use.</param>
+        </member>
+        <member name="M:Watson.Message.ToHeaderBytes">
+            <summary>
+            Produce a byte array containing only the headers.
+            </summary>
+            <returns>Byte array.</returns>
+        </member>
+        <member name="M:Watson.Message.ToString">
+            <summary>
+            Create a human-readable representation of the object.
+            </summary>
+            <returns>String.</returns>
+        </member>
+        <member name="T:Watson.MessageType">
+            <summary>
+            The type of message.
+            </summary> 
+        </member>
+        <member name="T:Watson.Peer">
+            <summary>
+            A peer WatsonTcp server.
+            </summary>
+        </member>
+        <member name="P:Watson.Peer.Ip">
+            <summary>
+            Server IP address.
+            </summary>
+        </member>
+        <member name="P:Watson.Peer.Port">
+            <summary>
+            Server port number.
+            </summary>
+        </member>
+        <member name="P:Watson.Peer.IpPort">
+            <summary>
+            Server IP address and port, of the form IP:port, used as an identifier.
+            </summary>
+        </member>
+        <member name="P:Watson.Peer.Ssl">
+            <summary>
+            Enable or disable SSL.
+            </summary>
+        </member>
+        <member name="P:Watson.Peer.PfxCertificateFile">
+            <summary>
+            PFX SSL certificate path and filename.
+            </summary>
+        </member>
+        <member name="P:Watson.Peer.PfxCertificatePassword">
+            <summary>
+            Password for PFX SSL certificate file.
+            </summary>
+        </member>
+        <member name="M:Watson.Peer.#ctor">
+            <summary>
+            Instantiate the object.
+            </summary>
+        </member>
+        <member name="M:Watson.Peer.#ctor(System.String,System.Int32)">
+            <summary>
+            Instantiate the object.  Call 'Connect()' method after instantiating and assigning values.  This constructor does not support SSL certificate files or passwords.
+            </summary> 
+            <param name="ip">IP address of the peer.</param>
+            <param name="port">Port number of the peer.</param> 
+        </member>
+        <member name="M:Watson.Peer.#ctor(System.String,System.Int32,System.Boolean)">
+            <summary>
+            Instantiate the object.  Call 'Connect()' method after instantiating and assigning values.  This constructor supports SSL, but does not support SSL certificate files or passwords.
+            </summary> 
+            <param name="ip">IP address of the peer.</param>
+            <param name="port">Port number of the peer.</param>
+            <param name="ssl">True if using SSL.</param>
+        </member>
+        <member name="M:Watson.Peer.#ctor(System.String,System.Int32,System.Boolean,System.String,System.String)">
+            <summary>
+            Instantiate the object.  Call 'Connect()' method after instantiating and assigning values.
+            </summary> 
+            <param name="ip">IP address of the peer.</param>
+            <param name="port">Port number of the peer.</param>
+            <param name="ssl">True if using SSL.</param>
+            <param name="pfxCertFile">PFX SSL certificate path and filename.</param>
+            <param name="pfxCertPass">Password for PFX SSL certificate file.</param>
+        </member>
+        <member name="M:Watson.Peer.ToString">
+            <summary>
+            Human-readable String representation of the object.
+            </summary>
+            <returns>String.</returns>
+        </member>
+        <member name="F:Watson.PendingResponse.Expiration">
+            <summary>
+            The time at which the response expires.
+            </summary>
+        </member>
+        <member name="F:Watson.PendingResponse.ResponseMessage">
+            <summary>
+            The response message.
+            </summary>
+        </member>
+        <member name="M:Watson.PendingResponse.#ctor(System.DateTime,Watson.Message)">
+            <summary>
+            Initialize the object.
+            </summary> 
+            <param name="expiration">The time at which the response expires.</param>
+            <param name="msg">The response message.</param>
+        </member>
+        <member name="T:Watson.SyncResponse">
+            <summary>
+            Object encapsulating a response to a synchronous message.
+            </summary>
+        </member>
+        <member name="F:Watson.SyncResponse.Status">
+            <summary>
+            Synchronous response status.
+            </summary>
+        </member>
+        <member name="P:Watson.SyncResponse.ContentLength">
+            <summary>
+            Response data length.
+            </summary>
+        </member>
+        <member name="P:Watson.SyncResponse.Data">
+            <summary>
+            Stream containing response data.  Set ContentLength first.
+            </summary>
+        </member>
+        <member name="F:Watson.SyncResponse.Exception">
+            <summary>
+            Exception associated with failure, if applicable.
+            </summary>
+        </member>
+        <member name="M:Watson.SyncResponse.#ctor">
+            <summary>
+            Instantiate the object.
+            </summary>
+        </member>
+        <member name="M:Watson.SyncResponse.#ctor(Watson.SyncResponseStatus,System.Int64,System.IO.Stream)">
+            <summary>
+            Instantiate the object.
+            </summary>
+            <param name="status">Response status.</param>
+            <param name="contentLength">Content length.</param>
+            <param name="stream">Stream containing response data.</param>
+        </member>
+        <member name="T:Watson.SyncResponseStatus">
+            <summary>
+            Status for synchronous response objects.
+            </summary>
+        </member>
+        <member name="F:Watson.SyncResponseStatus.Unknown">
+            <summary>
+            Unknown.
+            </summary>
+        </member>
+        <member name="F:Watson.SyncResponseStatus.Success">
+            <summary>
+            Success.
+            </summary>
+        </member>
+        <member name="F:Watson.SyncResponseStatus.SendFailure">
+            <summary>
+            Failure to send.
+            </summary>
+        </member>
+        <member name="F:Watson.SyncResponseStatus.Failed">
+            <summary>
+            Failed.
+            </summary>
+        </member>
+        <member name="F:Watson.SyncResponseStatus.Expired">
+            <summary>
+            Request expired or response arrived too late.
+            </summary>
+        </member>
+        <member name="F:Watson.SyncResponseStatus.PeerNotFound">
+            <summary>
+            Unable to find the requested peer.
+            </summary>
+        </member>
+        <member name="T:Watson.WatsonMesh">
+            <summary>
+            Watson mesh networking library.
+            </summary>
+        </member>
+        <member name="F:Watson.WatsonMesh.PeerConnected">
+            <summary>
+            Function to call when a peer connection is successfully established.
+            </summary>
+        </member>
+        <member name="F:Watson.WatsonMesh.PeerDisconnected">
+            <summary>
+            Function to call when a peer connection is severed.
+            </summary>
+        </member>
+        <member name="F:Watson.WatsonMesh.MessageReceived">
+            <summary>
+            Function to call when a message is received from a peer.
+            Read the specified number of bytes from the stream.
+            </summary>
+        </member>
+        <member name="F:Watson.WatsonMesh.SyncMessageReceived">
+            <summary>
+            Function to call when a sync message is received from a peer and a response is expected.
+            Read the specified number of bytes from the stream.
+            Your function must return a SyncResponse object.
+            </summary>
+        </member>
+        <member name="M:Watson.WatsonMesh.#ctor(Watson.MeshSettings,Watson.Peer)">
+            <summary>
+            Instantiate the platform with no peers.  Be sure to StartServer() after, and then Add(Peer) peers.
+            </summary>
+            <param name="settings">Settings for the mesh network.</param>
+            <param name="self">Local server configuration.</param>
+        </member>
+        <member name="M:Watson.WatsonMesh.Start">
+            <summary>
+            Start the mesh network server.
+            </summary>
+        </member>
+        <member name="M:Watson.WatsonMesh.IsHealthy">
+            <summary>
+            Check if all remote server connections are alive.
+            </summary>
+            <returns>True if all peers are connected.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.IsHealthy(System.String,System.Int32)">
+            <summary>
+            Check if a specific remote server connection is alive.
+            </summary>
+            <param name="ip">Peer IP address.</param>
+            <param name="port">Peer port number.</param>
+            <returns>True if healthy.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.Add(Watson.Peer)">
+            <summary>
+            Add a peer to the network.
+            </summary>
+            <param name="peer">Peer.</param>
+        </member>
+        <member name="M:Watson.WatsonMesh.Remove(Watson.Peer)">
+            <summary>
+            Remove a peer from the network.
+            </summary>
+            <param name="peer">Peer.</param>
+        </member>
+        <member name="M:Watson.WatsonMesh.Exists(Watson.Peer)">
+            <summary>
+            Check if a peer is part of the network.
+            </summary>
+            <param name="peer">Peer.</param>
+            <returns>True if the Peer is part of the network.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.GetPeers">
+            <summary>
+            Return a list of all Peer objects.
+            </summary>
+            <returns>List of Peer.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.GetDisconnectedPeers">
+            <summary>
+            Get list of disconnected peers.
+            </summary>
+            <returns>List of Peer.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.Send(Watson.Peer,System.Byte[])">
+            <summary>
+            Send byte data to a peer asynchronously.
+            </summary>
+            <param name="peer">Peer.</param>
+            <param name="data">Data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.Send(Watson.Peer,System.Int64,System.IO.Stream)">
+            <summary>
+            Send byte data to a peer asynchronously using a stream.
+            </summary>
+            <param name="peer">Peer.</param>
+            <param name="contentLength">The number of bytes to read from the stream.</param>
+            <param name="stream">The stream containing the data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.Send(System.String,System.Int32,System.Byte[])">
+            <summary>
+            Send byte data to a peer asynchronously.
+            </summary>
+            <param name="ip">Peer IP address.</param>
+            <param name="port">Peer port number.</param>
+            <param name="data">Data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.Send(System.String,System.Int32,System.Int64,System.IO.Stream)">
+            <summary>
+            Send byte data to a peer asynchronously using a stream.
+            </summary>
+            <param name="ip">Peer IP address.</param>
+            <param name="port">Peer port number.</param>
+            <param name="contentLength">The number of bytes to read from the stream.</param>
+            <param name="stream">The stream containing the data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.SendSync(Watson.Peer,System.Int32,System.Byte[])">
+            <summary>
+            Send byte data to a peer synchronously and await a response.
+            </summary>
+            <param name="peer">Peer.</param>
+            <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
+            <param name="data">Data.</param>
+            <returns>SyncResponse.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.SendSync(Watson.Peer,System.Int32,System.Int64,System.IO.Stream)">
+            <summary>
+            Send byte data to a peer synchronously and await a response.
+            </summary>
+            <param name="peer">Peer IP address.</param>
+            <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
+            <param name="contentLength">Number of bytes to send from the stream.</param>
+            <param name="stream">Stream containing the data to send.</param> 
+            <returns>SyncResponse.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.SendSync(System.String,System.Int32,System.Int32,System.Byte[])">
+            <summary>
+            Send stream data to a peer synchronously and await a response.
+            </summary>
+            <param name="ip">Peer IP address.</param>
+            <param name="port">Peer port number.</param>
+            <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
+            <param name="data">Data.</param>
+            <returns>SyncResponse.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.SendSync(System.String,System.Int32,System.Int32,System.Int64,System.IO.Stream)">
+            <summary>
+            Send byte data to a peer synchronously and await a response.
+            </summary>
+            <param name="ip">Peer IP address.</param>
+            <param name="port">Peer port number.</param>
+            <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
+            <param name="contentLength">Number of bytes to send from the stream.</param>
+            <param name="stream">Stream containing the data to send.</param> 
+            <returns>SyncResponse.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.Broadcast(System.Byte[])">
+            <summary>
+            Broadcast byte data to all peers.
+            </summary>
+            <param name="data">Byte data to send.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.Broadcast(System.Int64,System.IO.Stream)">
+            <summary>
+            Broadcast byte data to all peers.
+            </summary>
+            <param name="contentLength">The number of bytes to read from the stream.</param>
+            <param name="stream">The stream containing the data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Watson.WatsonMesh.DisconnectClient(System.String)">
+            <summary>
+            Disconnect a remote client.
+            </summary>
+            <param name="ipPort">IP address and port of the remote client, of the form IP:port.</param>
+        </member>
+    </members>
+</doc>
