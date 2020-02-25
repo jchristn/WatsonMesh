@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Watson
+namespace WatsonMesh
 {
     /// <summary>
     /// Settings for the mesh network.
@@ -14,48 +14,54 @@ namespace Watson
         #region Public-Members
 
         /// <summary>
-        /// Enable or disable console debugging.
-        /// </summary>
-        public bool Debug = false;
-
-        /// <summary>
         /// Indicate whether or not to automatically reconnect when a connection is severed.
         /// </summary>
-        public bool AutomaticReconnect { get; set; }
+        public bool AutomaticReconnect = true;
 
         /// <summary>
         /// Reconnect attempt interval, in milliseconds.
         /// </summary>
-        public int ReconnectIntervalMs { get; set; }
+        public int ReconnectIntervalMs
+        {
+            get
+            {
+                return _ReconnectInternalMs;
+            }
+            set
+            {
+                if (value < 1) throw new ArgumentException("Reconnect interval must be greater than zero.");
+                _ReconnectInternalMs = value;
+            }
+        }
 
         /// <summary>
         /// Shared secret password to use to mutually authenticate mesh network members.
         /// </summary>
         public string PresharedKey = null;
-         
+
         /// <summary>
         /// Enable or disable acceptance of invalid or unverifiable SSL certificates.
         /// </summary>
-        public bool AcceptInvalidCertificates { get; set; }
+        public bool AcceptInvalidCertificates = true;
 
         /// <summary>
         /// Enable or disable mutual authentication when using SSL.
         /// </summary>
-        public bool MutuallyAuthenticate { get; set; }
+        public bool MutuallyAuthenticate = false;
           
         /// <summary>
         /// Buffer size to use when reading input and output streams.  Default is 65536.
         /// </summary>
-        public int ReadStreamBufferSize
+        public int StreamBufferSize
         {
             get
             {
-                return _ReadStreamBufferSize;
+                return _StreamBufferSize;
             }
             set
             {
-                if (value < 1) throw new ArgumentException("Read stream buffer size must be greater than zero.");
-                _ReadStreamBufferSize = value;
+                if (value < 1) throw new ArgumentException("Stream buffer size must be greater than zero.");
+                _StreamBufferSize = value;
             }
         }
 
@@ -63,7 +69,8 @@ namespace Watson
 
         #region Private-Members
 
-        private int _ReadStreamBufferSize = 65536;
+        private int _ReconnectInternalMs = 1000;
+        private int _StreamBufferSize = 65536;
 
         #endregion
 
@@ -73,15 +80,7 @@ namespace Watson
         /// Instantiate the object.
         /// </summary>
         public MeshSettings()
-        {
-            Debug = false;
-            AutomaticReconnect = true;
-            ReconnectIntervalMs = 1000;
-            PresharedKey = null; 
-            AcceptInvalidCertificates = true;
-            MutuallyAuthenticate = false;  
-
-            _ReadStreamBufferSize = 65536;
+        {  
         }
 
         #endregion

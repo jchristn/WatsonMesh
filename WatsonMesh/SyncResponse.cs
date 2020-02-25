@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace Watson
+namespace WatsonMesh
 {
     /// <summary>
     /// Object encapsulating a response to a synchronous message.
@@ -36,16 +36,31 @@ namespace Watson
         /// <summary>
         /// Stream containing response data.  Set ContentLength first.
         /// </summary>
-        public Stream Data
+        public Stream DataStream
         {
             get
             {
-                return _Data;
+                return _DataStream;
             }
             set
             {
                 if (_ContentLength <= 0) throw new ArgumentException("Set ContentLength before setting DataStream.");
-                _Data = value;
+                _DataStream = value;
+            }
+        }
+
+        /// <summary>
+        /// The data from DataStream.
+        /// Using Data will fully read the contents of DataStream.
+        /// </summary>
+        public byte[] Data
+        {
+            get
+            {
+                if (_Data != null) return _Data;
+                if (ContentLength <= 0) return null;
+                _Data = Common.StreamToBytes(DataStream);
+                return _Data;
             }
         }
 
@@ -59,20 +74,15 @@ namespace Watson
         #region Private-Members
 
         private long _ContentLength = 0;
-        private Stream _Data = null;
+        private Stream _DataStream = null;
+        private byte[] _Data = null;
 
         #endregion
 
         #region Constructors-and-Factories
-
-        /// <summary>
-        /// Instantiate the object.
-        /// </summary>
-        public SyncResponse()
-        {
-            Status = SyncResponseStatus.Unknown;
-            _ContentLength = 0;
-            _Data = null;
+         
+        private SyncResponse()
+        {   
         }
 
         /// <summary>
@@ -80,17 +90,16 @@ namespace Watson
         /// </summary>
         /// <param name="status">Response status.</param>
         /// <param name="contentLength">Content length.</param>
-        /// <param name="stream">Stream containing response data.</param>
+        /// <param name="stream">Stream containing response data.  Will only be attached if contentLength is greater than zero.</param>
         public SyncResponse(SyncResponseStatus status, long contentLength, Stream stream)
         {
-            Status = status;
-            _ContentLength = 0;
-            _Data = null;
+            Status = status; 
+            _DataStream = stream;
 
             if (contentLength > 0)
             {
                 _ContentLength = contentLength;
-                _Data = stream;
+                _DataStream = stream;
             }
         }
 

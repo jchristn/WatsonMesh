@@ -4,49 +4,67 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Watson;
+using WatsonMesh;
 
 namespace TestNetCore
 {
     class Program
     {
-        static string _Ip;
-        static int _Port;
-        static MeshSettings _Settings;
-        static Peer _Self;
-        static WatsonMesh _Mesh;
+        static string _IpPort;
+        static List<string> _PeerIpPorts;
+        static MeshSettings _Settings; 
+        static MeshNode _Mesh;
 
         static bool _RunForever = true;
 
         static void Main(string[] args)
         {
-            _Ip = InputString("Listener IP:", "127.0.0.1", false);
-            _Port = InputInteger("Listener Port:", 8000, true, false);
+            if (args != null && args.Length > 0)
+            {
+                string ip;
+                int port;
+
+                ParseArguments(args, out ip, out port, out _PeerIpPorts);
+                _IpPort = ip + ":" + port;
+            }
+            else
+            {
+                _IpPort = InputString("Local IP:port:", "127.0.0.1:8000", false);
+            }
 
             _Settings = new MeshSettings(); 
             _Settings.AcceptInvalidCertificates = true;
             _Settings.AutomaticReconnect = true; 
             _Settings.MutuallyAuthenticate = false;
             _Settings.PresharedKey = null; 
-            _Settings.ReadStreamBufferSize = 65536;
-            _Settings.ReconnectIntervalMs = 1000;
-            // _Settings.Debug = true;
+            _Settings.StreamBufferSize = 65536;
+            _Settings.ReconnectIntervalMs = 1000; 
 
-            _Self = new Peer(_Ip, _Port);
-
-            _Mesh = new WatsonMesh(_Settings, _Self);
-            _Mesh.PeerConnected = PeerConnected;
-            _Mesh.PeerDisconnected = PeerDisconnected;
-            _Mesh.MessageReceived = MessageReceived;
-            _Mesh.SyncMessageReceived = SyncMessageReceived; 
+            _Mesh = new MeshNode(_Settings, new MeshPeer(_IpPort));
+            _Mesh.PeerConnected += PeerConnected;
+            _Mesh.PeerDisconnected += PeerDisconnected;
+            _Mesh.MessageReceived += MessageReceived;
+            _Mesh.SyncMessageReceived = SyncMessageReceived;
+            // _Mesh.Logger = Logger;
 
             _Mesh.Start();
+
+            if (_PeerIpPorts != null && _PeerIpPorts.Count > 0)
+            {
+                Console.Write("Adding peers: ");
+                foreach (string curr in _PeerIpPorts)
+                {
+                    Console.Write(curr + " ");
+                    _Mesh.Add(new MeshPeer(curr, false));
+                }
+                Console.WriteLine("");
+            }
 
             while (_RunForever)
             {
                 string userInput = InputString("WatsonMesh [? for help] >", null, false);
 
-                List<Peer> peers;
+                List<MeshPeer> peers;
 
                 switch (userInput)
                 {
@@ -69,7 +87,7 @@ namespace TestNetCore
                         if (peers != null && peers.Count > 0)
                         {
                             Console.WriteLine("Configured peers: " + peers.Count);
-                            foreach (Peer curr in peers) Console.WriteLine("  " + curr.ToString());
+                            foreach (MeshPeer curr in peers) Console.WriteLine("  " + curr.ToString());
                         }
                         else
                         {
@@ -82,7 +100,7 @@ namespace TestNetCore
                         if (peers != null && peers.Count > 0)
                         {
                             Console.WriteLine("Failed peers: " + peers.Count);
-                            foreach (Peer currPeer in peers) Console.WriteLine("  " + currPeer.ToString());
+                            foreach (MeshPeer currPeer in peers) Console.WriteLine("  " + currPeer.ToString());
                         }
                         else
                         {
@@ -91,42 +109,47 @@ namespace TestNetCore
                         break;
 
                     case "send":
-                        Send().Wait();
+                        Send();
+                        break;
+
+                    case "send md":
+                        SendMetadata();
                         break;
 
                     case "sendsync":
-                        SendSync().Wait();
+                        SendSync();
                         break;
-                         
+
+                    case "sendsync md":
+                        SendSyncMetadata();
+                        break;
+
                     case "bcast":
-                        Broadcast().Wait();
+                        Broadcast();
                         break;
 
                     case "add":
                         _Mesh.Add(
-                            new Peer(
-                                InputString("Peer IP:", "127.0.0.1", false),
-                                InputInteger("Peer port:", 8000, true, false),
+                            new MeshPeer(
+                                InputString("IP:port:", "127.0.0.1:8000", false),
                                 false));
                         break;
 
                     case "del":
                         _Mesh.Remove(
-                            new Peer(
-                                InputString("Peer IP:", "127.0.0.1", false),
-                                InputInteger("Peer port:", 8000, true, false),
+                            new MeshPeer(
+                                InputString("IP:port:", "127.0.0.1:8000", false), 
                                 false));
                         break;
 
                     case "health":
-                        Console.WriteLine("Healthy: " + _Mesh.IsHealthy());
+                        Console.WriteLine("Healthy: " + _Mesh.IsHealthy);
                         break;
 
                     case "nodehealth":
                         Console.WriteLine(
-                            _Mesh.IsHealthy(
-                                InputString("Peer IP:", "127.0.0.1", false),
-                                InputInteger("Peer port:", 8000, true, false)));
+                            _Mesh.IsServerConnected(
+                                InputString("IP:Port", "127.0.0.1:8000", false)));
                         break;
                 }
             }
@@ -135,31 +158,60 @@ namespace TestNetCore
         static void Menu()
         {
             Console.WriteLine("Available commands:");
-            Console.WriteLine("  ?           help, this menu");
-            Console.WriteLine("  cls         clear the screen");
-            Console.WriteLine("  q           quit the application");
-            Console.WriteLine("  list        list all peers");
-            Console.WriteLine("  failed      list failed peers");
-            Console.WriteLine("  add         add a peer");
-            Console.WriteLine("  del         delete a peer");
-            Console.WriteLine("  send        send a message to a peer asynchronously");
-            Console.WriteLine("  sendsync    send a message to a peer and await a response"); 
-            Console.WriteLine("  bcast       send a message to all peers");
-            Console.WriteLine("  health      display if the mesh is healthy");
-            Console.WriteLine("  nodehealth  display if a connection to a peer is healthy");
+            Console.WriteLine("  ?             help, this menu");
+            Console.WriteLine("  cls           clear the screen");
+            Console.WriteLine("  q             quit the application");
+            Console.WriteLine("  list          list all peers");
+            Console.WriteLine("  failed        list failed peers");
+            Console.WriteLine("  add           add a peer");
+            Console.WriteLine("  del           delete a peer");
+            Console.WriteLine("  send          send a message to a peer asynchronously");
+            Console.WriteLine("  send md       send a message to a peer with sample metadata");
+            Console.WriteLine("  sendsync      send a message to a peer and await a response");
+            Console.WriteLine("  sendsync md   send a message to a peer with sample metadata and await a response");
+            Console.WriteLine("  bcast         send a message to all peers");
+            Console.WriteLine("  health        display if the mesh is healthy");
+            Console.WriteLine("  nodehealth    display if a connection to a peer is healthy");
         }
         
-        static async Task Send()
-        { 
-            byte[] inputBytes = Encoding.UTF8.GetBytes(InputString("Data:", "some data", false));
-            MemoryStream inputStream = new MemoryStream(inputBytes);
-            inputStream.Seek(0, SeekOrigin.Begin);
-             
-            if (await _Mesh.Send(
-                InputString("Peer IP", "127.0.0.1", false),
-                InputInteger("Peer port:", 8000, true, false), 
-                inputBytes.Length,
-                inputStream))
+        static void ParseArguments(string[] args, out string ip, out int port, out List<string> peerIpPorts)
+        {
+            ip = null;
+            port = -1;
+            peerIpPorts = new List<string>();
+
+            if (args != null && args.Length > 0)
+            { 
+                foreach (string curr in args)
+                { 
+                    if (curr.StartsWith("-ipport="))
+                    {
+                        string val = curr.Replace("-ipport=", "");
+                        if (!String.IsNullOrEmpty(val))
+                        {
+                            if (val.Contains(":"))
+                            {
+                                ParseIpPort(val, out ip, out port);
+                            }
+                        }
+                    }
+
+                    if (curr.StartsWith("-peers="))
+                    {
+                        string val = curr.Replace("-peers=", "");
+                        string[] peers = val.Split(',');
+                        foreach (string peer in peers) peerIpPorts.Add(peer);
+                    }
+                }
+            }
+        }
+
+        static void Send()
+        {
+            string userInput = InputString("Data:", "some data", false);
+            if (_Mesh.Send(
+                InputString("IP:Port", "127.0.0.1:8000", false),
+                userInput))
             {
                 Console.WriteLine("Success"); 
             }
@@ -169,29 +221,44 @@ namespace TestNetCore
             }
         }
 
-        static async Task SendSync()
+        static void SendMetadata()
         {
-            byte[] inputBytes = Encoding.UTF8.GetBytes(InputString("Data:", "some data", false));
-            MemoryStream inputStream = new MemoryStream(inputBytes);
-            inputStream.Seek(0, SeekOrigin.Begin);
-             
-            SyncResponse resp = await _Mesh.SendSync(
-                InputString("Peer IP", "127.0.0.1", false),
-                InputInteger("Peer port:", 8000, true, false),
+            Dictionary<object, object> md = new Dictionary<object, object>();
+            md.Add("Key1", "Val1");
+            md.Add("Key2", "Val2");
+
+            string userInput = InputString("Data:", "some data", false);
+            if (_Mesh.Send(
+                InputString("IP:Port", "127.0.0.1:8000", false),
+                md,
+                userInput))
+            {
+                Console.WriteLine("Success");
+            }
+            else
+            {
+                Console.WriteLine("Failed");
+            }
+        }
+
+        static void SendSync()
+        {
+            string userInput = InputString("Data:", "some data", false);
+            SyncResponse resp = _Mesh.SendAndWait(
+                InputString("IP:Port", "127.0.0.1:8000", false),
                 InputInteger("Timeout ms:", 15000, true, false),
-                inputBytes.Length,
-                inputStream);
+                userInput);
 
             if (resp != null)
             {
                 Console.WriteLine("Status: " + resp.Status.ToString());
                 if (resp.ContentLength > 0)
                 {
-                    if (resp.Data != null)
+                    if (resp.DataStream != null)
                     {
-                        if (resp.Data.CanRead)
+                        if (resp.DataStream.CanRead)
                         {
-                            Console.WriteLine("Response: " + Encoding.UTF8.GetString(ReadStream(resp.ContentLength, resp.Data)));
+                            Console.WriteLine("Response: " + Encoding.UTF8.GetString(ReadStream(resp.ContentLength, resp.DataStream)));
                         }
                         else
                         {
@@ -211,16 +278,58 @@ namespace TestNetCore
             else
             {
                 Console.WriteLine("Failed");
-            } 
+            }
         }
 
-        static async Task Broadcast()
+        static void SendSyncMetadata()
         {
-            byte[] inputBytes = Encoding.UTF8.GetBytes(InputString("Data:", "some data", false));
-            MemoryStream inputStream = new MemoryStream(inputBytes);
-            inputStream.Seek(0, SeekOrigin.Begin);
+            Dictionary<object, object> md = new Dictionary<object, object>();
+            md.Add("Key1", "Val1");
+            md.Add("Key2", "Val2");
 
-            if (await _Mesh.Broadcast(inputBytes.Length, inputStream))
+            string userInput = InputString("Data:", "some data", false);
+            SyncResponse resp = _Mesh.SendAndWait(
+                InputString("IP:Port", "127.0.0.1:8000", false),
+                InputInteger("Timeout ms:", 15000, true, false),
+                md,
+                userInput);
+
+            if (resp != null)
+            {
+                Console.WriteLine("Status: " + resp.Status.ToString());
+                if (resp.ContentLength > 0)
+                {
+                    if (resp.DataStream != null)
+                    {
+                        if (resp.DataStream.CanRead)
+                        {
+                            Console.WriteLine("Response: " + Encoding.UTF8.GetString(ReadStream(resp.ContentLength, resp.DataStream)));
+                        }
+                        else
+                        {
+                            Console.WriteLine("Cannot read from response stream");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Response stream is null");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("(null)");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Failed");
+            }
+        }
+
+        static void Broadcast()
+        {
+            string userInput = InputString("Data:", "some data", false);
+            if (_Mesh.Broadcast(userInput))
             {
                 Console.WriteLine("Success");
             }
@@ -230,35 +339,44 @@ namespace TestNetCore
             } 
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task PeerConnected(Peer peer)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        static void PeerConnected(object sender, ServerConnectionEventArgs args)
         {
-            Console.WriteLine("Peer " + peer.ToString() + " connected"); 
-        }
-
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task PeerDisconnected(Peer peer)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-        {
-            Console.WriteLine("Peer " + peer.ToString() + " disconnected"); 
-        }
-
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task MessageReceived(Peer peer, long contentLength, Stream stream)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-        {
-            Console.WriteLine(peer.ToString() + " " + contentLength + " bytes: " + Encoding.UTF8.GetString(ReadStream(contentLength, stream)));
+            Console.WriteLine("Peer " + args.PeerNode.IpPort + " connected"); 
         }
          
-        static SyncResponse SyncMessageReceived(Peer peer, long contentLength, Stream stream)
+        static void PeerDisconnected(object sender, ServerConnectionEventArgs args) 
         {
+            Console.WriteLine("Peer " + args.PeerNode.IpPort + " disconnected"); 
+        }
+         
+        static void MessageReceived(object sender, MessageReceivedEventArgs args) 
+        {
+            if (args.IsBroadcast) Console.Write("[bcast] ");
+            Console.WriteLine("[async] " + args.SourceIpPort + " " + args.ContentLength + " bytes: " + Encoding.UTF8.GetString(args.Data));
+            if (args.Metadata != null && args.Metadata.Count > 0)
+            {
+                Console.WriteLine("Metadata:");
+                foreach (KeyValuePair<object, object> curr in args.Metadata)
+                {
+                    Console.WriteLine("  " + curr.Key.ToString() + ": " + curr.Value.ToString());
+                }
+            }
+        }
+         
+        static SyncResponse SyncMessageReceived(MessageReceivedEventArgs args)
+        {
+            Console.WriteLine("[sync] " + args.SourceIpPort + " " + args.ContentLength + " bytes: " + Encoding.UTF8.GetString(args.Data));
+            if (args.Metadata != null && args.Metadata.Count > 0)
+            {
+                Console.WriteLine("Metadata:");
+                foreach (KeyValuePair<object, object> curr in args.Metadata)
+                {
+                    Console.WriteLine("  " + curr.Key.ToString() + ": " + curr.Value.ToString());
+                }
+            }
             Console.WriteLine("");
-            Console.WriteLine("*** Synchronous Request ***");
-            Console.WriteLine(peer.ToString() + " " + contentLength + " bytes: " + Encoding.UTF8.GetString(ReadStream(contentLength, stream))); 
-            Console.WriteLine("");
-            Console.WriteLine("Press ENTER and THEN type your response!"); 
-            string resp = InputString("Response:", "This is a response", false);
+            Console.WriteLine("Sending synchronous response...");
+            string resp = "Thank you for your synchronous inquiry!";
             byte[] respData = Encoding.UTF8.GetBytes(resp);
             MemoryStream ms = new MemoryStream(respData);
             ms.Seek(0, SeekOrigin.Begin);
@@ -376,6 +494,21 @@ namespace TestNetCore
             }
         }
 
+        static void ParseIpPort(string ipPort, out string ip, out int port)
+        {
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+
+            ip = null;
+            port = -1;
+
+            int colonIndex = ipPort.LastIndexOf(':');
+            if (colonIndex != -1)
+            {
+                ip = ipPort.Substring(0, colonIndex);
+                port = Convert.ToInt32(ipPort.Substring(colonIndex + 1));
+            }
+        }
+
         static byte[] ReadStream(long contentLength, Stream stream)
         {
             if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero.");
@@ -457,5 +590,10 @@ namespace TestNetCore
                 return ret;
             }
         } 
+
+        static void Logger(string msg)
+        {
+            Console.WriteLine(msg);
+        }
     }
 }

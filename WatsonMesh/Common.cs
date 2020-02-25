@@ -5,16 +5,17 @@ using System.Linq;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks; 
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 
-namespace Watson
+namespace WatsonMesh
 {
     /// <summary>
     /// Commonly-used static methods.
     /// </summary>
     internal static class Common
-    { 
-        public static bool InputBoolean(string question, bool yesDefault)
+    {
+        internal static bool InputBoolean(string question, bool yesDefault)
         {
             Console.Write(question);
 
@@ -57,7 +58,7 @@ namespace Watson
             }
         }
 
-        public static string InputString(string question, string defaultAnswer, bool allowNull)
+        internal static string InputString(string question, string defaultAnswer, bool allowNull)
         {
             while (true)
             {
@@ -83,7 +84,7 @@ namespace Watson
             }
         }
 
-        public static int InputInteger(string question, int defaultAnswer, bool positiveOnly, bool allowZero)
+        internal static int InputInteger(string question, int defaultAnswer, bool positiveOnly, bool allowZero)
         {
             while (true)
             {
@@ -125,7 +126,7 @@ namespace Watson
             }
         }
 
-        public static string Md5(byte[] data)
+        internal static string Md5(byte[] data)
         {
             if (data == null) return null;
             MD5 md5 = MD5.Create();
@@ -136,7 +137,7 @@ namespace Watson
             return ret;
         }
 
-        public static string Md5(string data)
+        internal static string Md5(string data)
         {
             if (String.IsNullOrEmpty(data)) return null;
             MD5 md5 = MD5.Create();
@@ -148,21 +149,21 @@ namespace Watson
             return ret;
         }
 
-        public static byte[] Sha1(byte[] data)
+        internal static byte[] Sha1(byte[] data)
         {
             if (data == null || data.Length < 1) return null;
             SHA1Managed s = new SHA1Managed();
             return s.ComputeHash(data);
         }
 
-        public static byte[] Sha256(byte[] data)
+        internal static byte[] Sha256(byte[] data)
         {
             if (data == null || data.Length < 1) return null;
             SHA256Managed s = new SHA256Managed();
             return s.ComputeHash(data);
         }
 
-        public static byte[] AppendBytes(byte[] head, byte[] tail)
+        internal static byte[] AppendBytes(byte[] head, byte[] tail)
         {
             byte[] ret;
 
@@ -185,7 +186,7 @@ namespace Watson
             }
         }
 
-        public static byte[] ReadStream(long contentLength, Stream stream)
+        internal static byte[] ReadStream(long contentLength, Stream stream)
         {
             if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero.");
             if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -218,7 +219,7 @@ namespace Watson
             return ret;
         }
 
-        public static byte[] ReadStream(Stream stream)
+        internal static byte[] ReadStream(Stream stream)
         {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
@@ -244,12 +245,12 @@ namespace Watson
             return ret;
         }
 
-        public static string BytesToHex(byte[] ba)
+        internal static string BytesToHex(byte[] ba)
         {
             return BitConverter.ToString(ba).Replace("-", "");
         }
 
-        public static byte[] HexToBytes(String hex)
+        internal static byte[] HexToBytes(String hex)
         {
             int NumberChars = hex.Length;
             byte[] bytes = new byte[NumberChars / 2];
@@ -258,16 +259,87 @@ namespace Watson
             return bytes;
         }
 
-        public static void LogException(Exception e)
+        internal static string SerializeJson(object obj, bool pretty)
         {
-            Console.WriteLine("================================================================================");
-            Console.WriteLine(" = Exception Type: " + e.GetType().ToString());
-            Console.WriteLine(" = Exception Data: " + e.Data);
-            Console.WriteLine(" = Inner Exception: " + e.InnerException);
-            Console.WriteLine(" = Exception Message: " + e.Message);
-            Console.WriteLine(" = Exception Source: " + e.Source);
-            Console.WriteLine(" = Exception StackTrace: " + e.StackTrace);
-            Console.WriteLine("================================================================================");
+            if (obj == null) return null;
+            string json;
+
+            if (pretty)
+            {
+                json = JsonConvert.SerializeObject(
+                  obj,
+                  Newtonsoft.Json.Formatting.Indented,
+                  new JsonSerializerSettings
+                  {
+                      NullValueHandling = NullValueHandling.Ignore,
+                      DateTimeZoneHandling = DateTimeZoneHandling.Utc,
+                  });
+            }
+            else
+            {
+                json = JsonConvert.SerializeObject(obj,
+                  new JsonSerializerSettings
+                  {
+                      NullValueHandling = NullValueHandling.Ignore,
+                      DateTimeZoneHandling = DateTimeZoneHandling.Utc
+                  });
+            }
+
+            return json;
+        }
+
+        internal static T DeserializeJson<T>(string json)
+        {
+            if (String.IsNullOrEmpty(json)) throw new ArgumentNullException(nameof(json));
+            return JsonConvert.DeserializeObject<T>(json);
+        }
+
+        internal static T DeserializeJson<T>(byte[] data)
+        {
+            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
+            return DeserializeJson<T>(Encoding.UTF8.GetString(data));
+        }
+
+        internal static T CopyObject<T>(object o)
+        {
+            if (o == null) return default(T);
+            string json = SerializeJson(o, false);
+            T ret = DeserializeJson<T>(json);
+            return ret;
+        }
+
+        internal static byte[] StreamToBytes(Stream input)
+        {
+            if (input == null) throw new ArgumentNullException(nameof(input));
+            if (!input.CanRead) throw new InvalidOperationException("Input stream is not readable");
+
+            byte[] buffer = new byte[16 * 1024];
+            using (MemoryStream ms = new MemoryStream())
+            {
+                int read;
+
+                while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    ms.Write(buffer, 0, read);
+                }
+
+                return ms.ToArray();
+            }
+        }
+
+        internal static void ParseIpPort(string ipPort, out string ip, out int port)
+        {
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+
+            ip = null;
+            port = -1;
+
+            int colonIndex = ipPort.LastIndexOf(':');
+            if (colonIndex != -1)
+            {
+                ip = ipPort.Substring(0, colonIndex);
+                port = Convert.ToInt32(ipPort.Substring(colonIndex + 1));
+            }
         }
     }
 }

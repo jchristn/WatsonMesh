@@ -5,16 +5,16 @@ using System.Text;
 using System.Threading.Tasks; 
 using System.Runtime.Serialization;
 
-namespace Watson
+namespace WatsonMesh
 {
     /// <summary>
-    /// The type of message.
+    /// The type of message.  Reserved for future use.
     /// </summary> 
-    internal enum MessageType
+    public enum MessageType
     { 
-        Data, 
-        Authentication, 
-        Configuration, 
-        Notification
+        /// <summary>
+        /// Application data.
+        /// </summary>
+        Data 
     }
 }

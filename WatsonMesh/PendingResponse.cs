@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace Watson
+namespace WatsonMesh
 {
     internal class PendingResponse
     {

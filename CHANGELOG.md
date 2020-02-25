@@ -2,12 +2,21 @@
 
 ## Current Version
 
+v3.0.0
+
+- Breaking changes; major refactor
+- Migration from Func-based callbacks to EventHandler-based events
+- More complete ```Send``` and ```SendAsync``` methods
+- Overridable ```Logger``` method
+- Support for sending ```Dictionary```-based metadata with messages
+- Significant code reduction and cleanup
+
+## Previous Versions
+
 v2.0.3
 
 - XML documentation
 - Update to latest WatsonTcp (again for XML documentation)
-
-## Previous Versions
 
 v2.0.2
 

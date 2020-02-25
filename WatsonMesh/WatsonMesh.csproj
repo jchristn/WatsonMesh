@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>2.0.3</Version>
+    <Version>3.0.0</Version>
     <Authors>Joel Christner</Authors>
     <Description>A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.</Description>
     <Copyright>(c)2019 Joel Christner</Copyright>
@@ -11,7 +11,7 @@
     <RepositoryUrl>https://github.com/jchristn/WatsonMesh</RepositoryUrl>
     <RepositoryType>Github</RepositoryType>
     <PackageLicenseUrl></PackageLicenseUrl>
-    <PackageReleaseNotes>Dependency updates to better support graceful handling of disconnects</PackageReleaseNotes>
+    <PackageReleaseNotes>Breaking changes, update to Event instead of Func-based callbacks.</PackageReleaseNotes>
     <PackageTags>mesh network networking tcp ssl framing distributed cluster event health healthy</PackageTags>
     <PackageIconUrl>https://raw.githubusercontent.com/jchristn/watsonmesh/master/assets/watson.ico</PackageIconUrl>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
@@ -22,7 +22,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="WatsonTcp" Version="2.0.6" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="WatsonTcp" Version="3.0.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -30,6 +31,10 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Classes\" />
   </ItemGroup>
 
 </Project>

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Watson
+namespace WatsonMesh
 {
     /// <summary>
     /// Status for synchronous response objects.
