@@ -45,10 +45,9 @@ WatsonMesh mesh = new WatsonMesh(settings, self);
 
 // define callbacks and start
 
-mesh.PeerConnected = PeerConnected;
-mesh.PeerDisconnected = PeerDisconnected;
-mesh.MessageReceived = MessageReceived;
-mesh.SyncMessageReceived = SyncMessageReceived;
+mesh.PeerConnected += PeerConnected;
+mesh.PeerDisconnected += PeerDisconnected;
+mesh.MessageReceived += MessageReceived; 
 mesh.Start();
 
 // add peers 
@@ -58,30 +57,25 @@ mesh.Add(new Peer("127.0.0.1", 8002));
 
 // implement callbacks
 
-static async Task PeerConnected(Peer peer) 
+static void PeerConnected(object sender, ServerConnectionEventArgs args) 
 {
-    Console.WriteLine("Peer " + peer.ToString() + " connected!");
+    Console.WriteLine("Peer " + args.PeerNode.ToString() + " connected!");
 }
 
-static async Task PeerDisconnected(Peer peer) 
+static void PeerDisconnected(object sender, ServerConnectionEventArgs args) 
 {
-    Console.WriteLine("Peer " + peer.ToString() + " disconnected!");
+    Console.WriteLine("Peer " + args.PeerNode.ToString() + " disconnected!");
 }
 
-static async Task MessageReceived(Peer peer, long contentLength, Stream stream) 
+static void MessageReceived(object sender, MessageReceivedEventArgs args) 
 {
-    // read contentLength bytes from stream and process
+	Console.WriteLine("Message from " + args.SourceIpPort + ": " + Encoding.UTF8.GetBytes(args.Data));
 }
 
-static SyncResponse SyncMessageReceived(Peer peer, long contentLength, Stream stream) 
+static SyncResponse SyncMessageReceived(MessageReceivedEventArgs args) 
 {
-	// read stream into byte[] data
-	Console.WriteLine(peer.ToString() + " says: " + Encoding.UTF8.GetString(data));
-	Console.Write("How would you like to respond? ");
-	byte[] responseBytes = Encoding.UTF8.GetBytes(Console.ReadLine());
-    MemoryStream ms = new MemoryStream(responseBytes);
-	SyncResponse sr = new SyncResponse(SyncResponseStatus.Success, responseBytes.Length, ms);
-	return sr;
+	Console.WriteLine("Message from " + args.SourceIpPort + ": " + Encoding.UTF8.GetBytes(args.Data));
+	return new SyncResponse(SyncResponseStatus.Success, "Hello!");
 }
 
 // send messages

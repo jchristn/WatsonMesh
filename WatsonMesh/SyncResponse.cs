@@ -89,6 +89,56 @@ namespace WatsonMesh
         /// Instantiate the object.
         /// </summary>
         /// <param name="status">Response status.</param>
+        /// <param name="data">Data.</param>
+        public SyncResponse(SyncResponseStatus status, string data)
+        {
+            Status = status;
+
+            if (String.IsNullOrEmpty(data))
+            {
+                _ContentLength = 0;
+                _Data = null;
+                _DataStream = null;
+            }
+            else
+            {
+                _Data = Encoding.UTF8.GetBytes(data);
+                _ContentLength = _Data.Length;
+                
+                _DataStream = new MemoryStream(_Data);
+                _DataStream.Seek(0, SeekOrigin.Begin);
+            }
+        }
+
+        /// <summary>
+        /// Instantiate the object.
+        /// </summary>
+        /// <param name="status">Response status.</param>
+        /// <param name="data">Data.</param>
+        public SyncResponse(SyncResponseStatus status, byte[] data)
+        {
+            Status = status;
+
+            if (data == null)
+            {
+                _ContentLength = 0;
+                _Data = null;
+                _DataStream = null;
+            }
+            else
+            {
+                _Data = data; 
+                _ContentLength = data.Length;
+
+                _DataStream = new MemoryStream(_Data);
+                _DataStream.Seek(0, SeekOrigin.Begin);
+            } 
+        }
+
+        /// <summary>
+        /// Instantiate the object.
+        /// </summary>
+        /// <param name="status">Response status.</param>
         /// <param name="contentLength">Content length.</param>
         /// <param name="stream">Stream containing response data.  Will only be attached if contentLength is greater than zero.</param>
         public SyncResponse(SyncResponseStatus status, long contentLength, Stream stream)
