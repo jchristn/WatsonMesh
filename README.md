@@ -41,6 +41,10 @@ The IP address you specify determines whether or not WatsonMesh will allow exter
 
 **REMINDER** If you use ```127.0.0.1``` as your IP address, WatsonMesh will only be allowed to receive connections from the local machine.
 
+## Known Limitations
+
+WatsonMesh will not work in environments where NAT (Network Address Translation) exists in between members of the mesh network.
+
 ## Example
 
 The following example shows a simple example using byte arrays and without SSL.  Make sure you start instances for mesh nodes running on ports 8000, 8001, and 8002.  You can use multiple instances of the ```Test``` project to see a more complete example. 
