@@ -39,7 +39,7 @@ When defining the local server configuration IP:port, use the form ```[ipaddress
 * If you specify ```127.0.0.1``` as the IP address, it will only be able to accept connections from within the local host.  
 * To accept connections from other machines:
   * Use a specific interface IP address, or
-  * Use ```null```, ```*```, ```+```, or ```0.0.0.0``` for the listener IP address (requires admin privileges to listen on any IP address)
+  * Use ```0.0.0.0``` for the listener IP address to listen on ANY IP address (requires admin privileges)
 * Make sure you create a permit rule on your firewall to allow inbound connections on that port
 * If you use a port number under 1024, admin privileges will be required
 
@@ -53,20 +53,21 @@ using WatsonMesh;
 // initialize
 
 MeshSettings settings = new MeshSettings(); // use defaults
-Peer self = new Peer("127.0.0.1", 8000);
-WatsonMesh mesh = new WatsonMesh(settings, self);
+MeshPeer self = new MeshPeer("127.0.0.1:8000");
+MeshNode mesh = new MeshNode(settings, self);
 
 // define callbacks and start
 
 mesh.PeerConnected += PeerConnected;
 mesh.PeerDisconnected += PeerDisconnected;
 mesh.MessageReceived += MessageReceived; 
+mesh.SyncMessageReceived = SyncMessageReceived;
 mesh.Start();
 
 // add peers 
 
-mesh.Add(new Peer("127.0.0.1", 8001));
-mesh.Add(new Peer("127.0.0.1", 8002)); 
+mesh.Add(new Peer("127.0.0.1:8001", false));
+mesh.Add(new Peer("127.0.0.1:8002", false)); 
 
 // implement callbacks
 
@@ -88,15 +89,14 @@ static void MessageReceived(object sender, MessageReceivedEventArgs args)
 static SyncResponse SyncMessageReceived(MessageReceivedEventArgs args) 
 {
 	Console.WriteLine("Message from " + args.SourceIpPort + ": " + Encoding.UTF8.GetBytes(args.Data));
-	return new SyncResponse(SyncResponseStatus.Success, "Hello!");
+	return new SyncResponse(SyncResponseStatus.Success, "Hello back at you!");
 }
 
 // send messages
-
-byte[] data = Encoding.UTF8.GetBytes("Hello from Watson Mesh!");
-if (!mesh.Send("127.0.0.1", 8001, data)) { // handle errors }
-if (!mesh.Broadcast(data)) { // handle errors }
-SyncResponse resp = mesh.SendSync("127.0.0.1", 8001, 5000, dataLength, stream);
+ 
+if (!mesh.Send("127.0.0.1:8001", "Hello, world!")) { // handle errors }
+if (!mesh.Broadcast("Hello, world!")) { // handle errors }
+SyncResponse resp = mesh.SendSync("127.0.0.1:8001", 5000, "Hello, world!");
 ```
 
 ## Running under Mono
