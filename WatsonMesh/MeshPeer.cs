@@ -16,9 +16,37 @@ namespace WatsonMesh
         #region Public-Members
          
         /// <summary>
+        /// IP address of the peer.
+        /// </summary>
+        public string Ip
+        {
+            get
+            {
+                return _Ip;
+            }
+        }
+
+        /// <summary>
+        /// TCP port number of the peer on which a connection should be attempted.
+        /// </summary>
+        public int Port
+        {
+            get
+            {
+                return _Port;
+            }
+        }
+
+        /// <summary>
         /// Server IP address and port of the node, of the form IP:Port.
         /// </summary>
-        public string IpPort { get; }
+        public string IpPort 
+        { 
+            get
+            {
+                return _IpPort;
+            }
+        }
  
         /// <summary>
         /// Enable or disable SSL.
@@ -41,6 +69,7 @@ namespace WatsonMesh
 
         private string _Ip = null;
         private int _Port = -1;
+        private string _IpPort = null;
 
         #endregion
 
@@ -55,7 +84,7 @@ namespace WatsonMesh
         /// Instantiate the object.  Call 'Connect()' method after instantiating and assigning values.  
         /// This constructor does not support SSL certificate files or passwords.
         /// </summary> 
-        /// <param name="ipPort">IP address of the peer and port, of the form IP:port.</param>
+        /// <param name="ipPort">IP address of the peer and port, of the form IP:port.  You can only use 127.0.0.1 or an IP address assigned to one of your interfaces.</param>
         public MeshPeer(string ipPort)
         {
             if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
@@ -64,7 +93,7 @@ namespace WatsonMesh
             if (String.IsNullOrEmpty(_Ip)) throw new ArgumentException("Unable to extract IP address from supplied IP:port.");
             if (_Port < 1) throw new ArgumentException("Invalid port value or unable to extract port value from supplied IP:port.");
 
-            IpPort = ipPort;
+            _IpPort = ipPort;
             Ssl = false;
 
             PfxCertificateFile = null;
@@ -84,7 +113,7 @@ namespace WatsonMesh
             if (String.IsNullOrEmpty(_Ip)) throw new ArgumentException("Unable to extract IP address from supplied IP:port.");
             if (_Port < 1) throw new ArgumentException("Invalid port value or unable to extract port value from supplied IP:port.");
 
-            IpPort = ipPort;
+            _IpPort = ipPort;
             Ssl = ssl;
 
             PfxCertificateFile = null;
@@ -106,7 +135,7 @@ namespace WatsonMesh
             if (String.IsNullOrEmpty(_Ip)) throw new ArgumentException("Unable to extract IP address from supplied IP:port.");
             if (_Port < 1) throw new ArgumentException("Invalid port value or unable to extract port value from supplied IP:port.");
 
-            IpPort = ipPort;
+            _IpPort = ipPort;
             Ssl = ssl;
 
             PfxCertificateFile = pfxCertFile;

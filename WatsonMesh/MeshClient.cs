@@ -15,8 +15,7 @@ namespace WatsonMesh
     internal class MeshClient : IDisposable
     {
         #region Public-Members
-
-        internal MeshPeer LocalNode = null;
+         
         internal MeshPeer PeerNode = null;
         internal Func<string> AuthenticationRequested = null; 
         internal event EventHandler AuthenticationSucceeded; 
@@ -47,14 +46,12 @@ namespace WatsonMesh
 
         #region Constructors-and-Factories
          
-        internal MeshClient(MeshSettings settings, MeshPeer local, MeshPeer peer)
+        internal MeshClient(MeshSettings settings, MeshPeer peer)
         {
-            if (settings == null) throw new ArgumentNullException(nameof(settings));
-            if (local == null) throw new ArgumentNullException(nameof(local));
+            if (settings == null) throw new ArgumentNullException(nameof(settings)); 
             if (peer == null) throw new ArgumentNullException(nameof(peer));
 
-            _Settings = settings;
-            LocalNode = local;
+            _Settings = settings; 
             PeerNode = peer;
 
             Logger?.Invoke("[MeshClient] Initialized to connect to " + PeerNode.IpPort);
@@ -89,7 +86,7 @@ namespace WatsonMesh
                     PeerNode.PfxCertificateFile,
                     PeerNode.PfxCertificatePassword);
 
-                Logger?.Invoke("[MeshClient] Initialized TCP client with SSL to connect to " + ip + ":" + port);
+                Logger?.Invoke("[MeshClient] Starting TCP client with SSL to connect to " + ip + ":" + port);
             }
             else
             {
@@ -97,7 +94,7 @@ namespace WatsonMesh
                     ip,
                     port);
 
-                Logger?.Invoke("[MeshClient] Initialized TCP client to connect to " + ip + ":" + port);
+                Logger?.Invoke("[MeshClient] Starting TCP client to connect to " + ip + ":" + port);
             }
 
             _TcpClient.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 

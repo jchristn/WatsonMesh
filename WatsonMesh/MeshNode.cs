@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
@@ -71,7 +73,12 @@ namespace WatsonMesh
         #region Private-Members
 
         private MeshSettings _Settings = null;
-        private MeshPeer _Self = null;
+        private string _Ip = null;
+        private int _Port = 0;
+        private string _IpPort = null;
+        private bool _Ssl = false;
+        private string _PfxCertificateFile = null;
+        private string _PfxCertificatePass = null;
         private MeshServer _Server = null;
 
         private readonly object _PeerLock = new object();
@@ -90,24 +97,124 @@ namespace WatsonMesh
         #region Constructors-and-Factories
 
         /// <summary>
-        /// Instantiate the platform with no peers.  
-        /// Be sure to Start() and then Add(Peer) peers.
+        /// Instantiate the platform with no peers and without SSL using the default settings.
         /// </summary>
-        /// <param name="settings">Settings for the mesh network.</param>
-        /// <param name="self">Local server configuration.</param>
-        public MeshNode(MeshSettings settings, MeshPeer self)
+        /// <param name="ip">The IP address; either 127.0.0.1, or, an address that maps to a local network interface.</param>
+        /// <param name="port">The TCP port on which to listen.</param>
+        public MeshNode(string ip, int port)
         {
-            if (settings == null) throw new ArgumentNullException(nameof(settings));
-            if (self == null) throw new ArgumentNullException(nameof(self));
+            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (port < 0) throw new ArgumentException("Port number must be zero or greater.");
 
-            _Settings = settings;
-            _Self = self;
-              
+            _Settings = new MeshSettings();
+            _Ip = ip;
+            _Port = port;
+            _IpPort = _Ip + ":" + _Port;
+            _Ssl = false;
+
+            List<string> localIpAddresses = GetLocalIpAddresses();
+            if (_Ip.Equals("127.0.0.1"))
+            {
+                Logger?.Invoke("[MeshNode] Loopback IP address detected; only connections from local machine will be accepted");
+            }
+            else
+            {
+                if (!localIpAddresses.Contains(_Ip))
+                {
+                    Logger?.Invoke("[MeshNode] Specified IP address '" + _Ip + "' not found in local IP address list:");
+                    foreach (string curr in localIpAddresses) Logger?.Invoke("  " + curr);
+                    throw new ArgumentException("IP address must either be 127.0.0.1 or the IP address of a local network interface.");
+                }
+            }
+
             _Timer.Elapsed += new ElapsedEventHandler(CleanupThread);
             _Timer.Interval = 5000;
             _Timer.Enabled = true;
 
-            Logger?.Invoke("[MeshNode] Initialized with MeshServer on IP:port " + _Self.IpPort);
+            Logger?.Invoke("[MeshNode] Initialized MeshServer on IP:port " + _IpPort + " without SSL");
+        }
+
+        /// <summary>
+        /// Instantiate the platform with no peers and without SSL.
+        /// </summary>
+        /// <param name="settings">Settings for the mesh network.</param> 
+        /// <param name="ip">The IP address; either 127.0.0.1, or, an address that maps to a local network interface.</param>
+        /// <param name="port">The TCP port on which to listen.</param>
+        public MeshNode(MeshSettings settings, string ip, int port)
+        {
+            if (settings == null) throw new ArgumentNullException(nameof(settings));
+            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (port < 0) throw new ArgumentException("Port number must be zero or greater.");
+
+            _Settings = settings;
+            _Ip = ip;
+            _Port = port;
+            _IpPort = _Ip + ":" + _Port;
+            _Ssl = false;
+
+            List<string> localIpAddresses = GetLocalIpAddresses();
+            if (_Ip.Equals("127.0.0.1"))
+            {
+                Logger?.Invoke("[MeshNode] Loopback IP address detected; only connections from local machine will be accepted");
+            }
+            else
+            {
+                if (!localIpAddresses.Contains(_Ip))
+                {
+                    Logger?.Invoke("[MeshNode] Specified IP address '" + _Ip + "' not found in local IP address list:");
+                    foreach (string curr in localIpAddresses) Logger?.Invoke("  " + curr);
+                    throw new ArgumentException("IP address must either be 127.0.0.1 or the IP address of a local network interface.");
+                }
+            }
+
+            _Timer.Elapsed += new ElapsedEventHandler(CleanupThread);
+            _Timer.Interval = 5000;
+            _Timer.Enabled = true;
+
+            Logger?.Invoke("[MeshNode] Initialized MeshServer on IP:port " + _IpPort + " without SSL");
+        }
+
+        /// <summary>
+        /// Instantiate the platform with no peers with SSL.  
+        /// Be sure to Start() and then Add(Peer) peers.
+        /// </summary>
+        /// <param name="settings">Settings for the mesh network.</param> 
+        /// <param name="ip">The IP address; either 127.0.0.1, or, an address that maps to a local network interface.</param>
+        /// <param name="port">The TCP port on which to listen.</param>
+        /// <param name="pfxCertFile">The PFX certificate file.</param>
+        /// <param name="pfxCertPass">The password to the PFX certificate file.</param>
+        public MeshNode(MeshSettings settings, string ip, int port, string pfxCertFile, string pfxCertPass)
+        {
+            if (settings == null) throw new ArgumentNullException(nameof(settings));
+            if (ip == null) throw new ArgumentNullException(nameof(ip));
+            if (port < 0) throw new ArgumentException("Port number must be zero or greater.");
+
+            _Settings = settings;
+            _Ip = ip;
+            _Port = port;
+            _IpPort = _Ip + ":" + _Port;
+            _Ssl = true;
+
+            List<string> localIpAddresses = GetLocalIpAddresses();
+            if (_Ip.Equals("127.0.0.1"))
+            {
+                Logger?.Invoke("[MeshNode] Loopback IP address detected; only connections from local machine will be accepted");
+            }
+            else
+            {
+                if (!localIpAddresses.Contains(_Ip))
+                {
+                    Logger?.Invoke("[MeshNode] Specified IP address '" + _Ip + "' not found in local IP address list:");
+                    foreach (string curr in localIpAddresses) Logger?.Invoke("  " + curr);
+                    throw new ArgumentException("IP address must either be 127.0.0.1 or the IP address of a local network interface.");
+                }
+            }
+
+            _Timer.Elapsed += new ElapsedEventHandler(CleanupThread);
+            _Timer.Interval = 5000;
+            _Timer.Enabled = true;
+
+            Logger?.Invoke("[MeshNode] Initialized MeshServer on IP:port " + _IpPort + " with SSL");
         }
 
         #endregion
@@ -119,7 +226,7 @@ namespace WatsonMesh
         /// </summary>
         public void Start()
         {
-            _Server = new MeshServer(_Settings, _Self);
+            _Server = new MeshServer(_Settings, _Ip, _Port, _Ssl, _PfxCertificateFile, _PfxCertificatePass);
             _Server.ClientConnected += MeshServerClientConnected;
             _Server.ClientDisconnected += MeshServerClientDisconnected; 
             _Server.MessageReceived += MeshServerStreamReceived;
@@ -161,7 +268,7 @@ namespace WatsonMesh
                 if (exists) return;
                 else
                 {
-                    MeshClient currClient = new MeshClient(_Settings, _Self, peer); 
+                    MeshClient currClient = new MeshClient(_Settings, peer); 
                     currClient.ServerConnected += MeshClientServerConnected;
                     currClient.ServerDisconnected += MeshClientServerDisconnected;
                     // currClient.MessageReceived += MeshClientStreamReceived;
@@ -825,7 +932,7 @@ namespace WatsonMesh
                     {
                         SyncResponse syncResponse = SyncMessageReceived(payloadArgs);
                         syncResponse.DataStream.Seek(0, SeekOrigin.Begin); 
-                        Message responseMsg = new Message(_Self.IpPort, currPeer.IpPort, currMsg.TimeoutMs, false, false, true, currMsg.Type, currMsg.Metadata, syncResponse.ContentLength, syncResponse.DataStream);
+                        Message responseMsg = new Message(_IpPort, currPeer.IpPort, currMsg.TimeoutMs, false, false, true, currMsg.Type, currMsg.Metadata, syncResponse.ContentLength, syncResponse.DataStream);
                         responseMsg.Id = currMsg.Id;  
                         SendSyncResponseInternal(currClient, responseMsg);
                     }
@@ -856,7 +963,7 @@ namespace WatsonMesh
         {
             if (client == null) throw new ArgumentNullException(nameof(client));
 
-            Message msg = new Message(_Self.IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, contentLength, stream);
+            Message msg = new Message(_IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, contentLength, stream);
             byte[] headerBytes = msg.ToHeaderBytes();
             long totalLen = headerBytes.Length;
 
@@ -891,7 +998,7 @@ namespace WatsonMesh
         {
             if (client == null) throw new ArgumentNullException(nameof(client));
 
-            Message msg = new Message(_Self.IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, contentLength, stream);
+            Message msg = new Message(_IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, contentLength, stream);
             byte[] headerBytes = msg.ToHeaderBytes();  
             long totalLen = headerBytes.Length;
 
@@ -928,7 +1035,7 @@ namespace WatsonMesh
          
         private bool BroadcastInternal(MessageType msgType, Dictionary<object, object> metadata, long contentLength, Stream stream)
         {
-            Message msg = new Message(_Self.IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream);
+            Message msg = new Message(_IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream);
             byte[] headerBytes = msg.ToHeaderBytes();
             long totalLen = headerBytes.Length;
 
@@ -974,7 +1081,7 @@ namespace WatsonMesh
          
         private async Task<bool> BroadcastInternalAsync(MessageType msgType, Dictionary<object, object> metadata, long contentLength, Stream stream)
         { 
-            Message msg = new Message(_Self.IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream); 
+            Message msg = new Message(_IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream); 
             byte[] headerBytes = msg.ToHeaderBytes();
             long totalLen = headerBytes.Length;
 
@@ -1031,7 +1138,7 @@ namespace WatsonMesh
          
         private SyncResponse SendAndWaitInternal(MeshClient client, MessageType msgType, int timeoutMs, Dictionary<object, object> metadata, long contentLength, Stream stream)
         { 
-            Message msg = new Message(_Self.IpPort, client.PeerNode.IpPort, timeoutMs, false, true, false, msgType, metadata, contentLength, stream);
+            Message msg = new Message(_IpPort, client.PeerNode.IpPort, timeoutMs, false, true, false, msgType, metadata, contentLength, stream);
             byte[] headers = msg.ToHeaderBytes();
 
             try
@@ -1182,6 +1289,20 @@ namespace WatsonMesh
                     _PendingResponses.TryRemove(curr.Key, out temp);
                 }
             }
+        }
+          
+        private List<string> GetLocalIpAddresses()
+        {
+            List<string> ret = new List<string>();
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    ret.Add(ip.ToString());
+                }
+            }
+            return ret;
         }
 
         #endregion

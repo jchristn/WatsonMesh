@@ -10,6 +10,8 @@ namespace TestNetCore
 {
     class Program
     {
+        static string _Ip;
+        static int _Port = 0;
         static string _IpPort;
         static List<string> _PeerIpPorts;
         static MeshSettings _Settings; 
@@ -20,16 +22,14 @@ namespace TestNetCore
         static void Main(string[] args)
         {
             if (args != null && args.Length > 0)
-            {
-                string ip;
-                int port;
-
-                ParseArguments(args, out ip, out port, out _PeerIpPorts);
-                _IpPort = ip + ":" + port;
+            { 
+                ParseArguments(args, out _Ip, out _Port, out _PeerIpPorts);
+                _IpPort = _Ip + ":" + _Port;
             }
             else
             {
                 _IpPort = InputString("Local IP:port:", "127.0.0.1:8000", false);
+                ParseIpPort(_IpPort, out _Ip, out _Port);
             }
 
             _Settings = new MeshSettings(); 
@@ -40,7 +40,7 @@ namespace TestNetCore
             _Settings.StreamBufferSize = 65536;
             _Settings.ReconnectIntervalMs = 1000; 
 
-            _Mesh = new MeshNode(_Settings, new MeshPeer(_IpPort));
+            _Mesh = new MeshNode(_Ip, _Port);
             _Mesh.PeerConnected += PeerConnected;
             _Mesh.PeerDisconnected += PeerDisconnected;
             _Mesh.MessageReceived += MessageReceived;

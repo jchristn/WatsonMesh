@@ -2,6 +2,14 @@
 
 ## Current Version
 
+v3.1.0
+
+- Breaking changes
+- Now only ```127.0.0.1``` or a valid IP address bound to a local network adapter are allowed
+- Constructor changes to ```MeshNode```
+
+## Previous Versions
+
 v3.0.0
 
 - Breaking changes; major refactor
@@ -10,8 +18,6 @@ v3.0.0
 - Overridable ```Logger``` method
 - Support for sending ```Dictionary```-based metadata with messages
 - Significant code reduction and cleanup
-
-## Previous Versions
 
 v2.0.3
 

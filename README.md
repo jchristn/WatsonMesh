@@ -9,14 +9,11 @@
 
 A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.
 
-## New in v3.0.0
+## New in v3.1.0
 
-- Breaking changes; major refactor
-- Migration from Func-based callbacks to EventHandler-based events
-- More complete ```Send``` and ```SendAsync``` methods
-- Overridable ```Logger``` method
-- Support for sending ```Dictionary```-based metadata with messages
-- Significant code reduction and cleanup
+- Breaking changes
+- Now only ```127.0.0.1``` or a valid IP address bound to a local network adapter are allowed
+- Constructor changes to ```MeshNode```
 
 ## What is Watson Mesh?
 
@@ -34,14 +31,15 @@ Refer to the ```Test``` project for a full working example.  Multiple instances 
 
 **IMPORTANT**
 
-When defining the local server configuration IP:port, use the form ```[ipaddress]:[port]```, i.e. if your IP address is ```10.134.16.54``` and you wish to listen on port ```9000```, use ```10.134.16.54:9000```.
+The IP address you specify determines whether or not WatsonMesh will allow external connections.   
 
-* If you specify ```127.0.0.1``` as the IP address, it will only be able to accept connections from within the local host.  
+* If you specify ```127.0.0.1``` as the IP address, WatsonMesh will only be able to accept connections from within the local host.  
 * To accept connections from other machines:
-  * Use a specific interface IP address, or
-  * Use ```0.0.0.0``` for the listener IP address to listen on ANY IP address (requires admin privileges)
-* Make sure you create a permit rule on your firewall to allow inbound connections on that port
+  * Use a specific interface IP address (i.e. ```ipconfig``` from Command Prompt or ```ifconfig``` from Linux shell)
+  * Make sure you create a permit rule on your firewall to allow inbound connections on that port
 * If you use a port number under 1024, admin privileges will be required
+
+**REMINDER** If you use ```127.0.0.1``` as your IP address, WatsonMesh will only be allowed to receive connections from the local machine.
 
 ## Example
 
@@ -51,13 +49,9 @@ The following example shows a simple example using byte arrays and without SSL. 
 using WatsonMesh; 
 
 // initialize
-
-MeshSettings settings = new MeshSettings(); // use defaults
-MeshPeer self = new MeshPeer("127.0.0.1:8000");
-MeshNode mesh = new MeshNode(settings, self);
+MeshNode mesh = new MeshNode("127.0.0.1", 8000);
 
 // define callbacks and start
-
 mesh.PeerConnected += PeerConnected;
 mesh.PeerDisconnected += PeerDisconnected;
 mesh.MessageReceived += MessageReceived; 
@@ -65,9 +59,8 @@ mesh.SyncMessageReceived = SyncMessageReceived;
 mesh.Start();
 
 // add peers 
-
-mesh.Add(new Peer("127.0.0.1:8001", false));
-mesh.Add(new Peer("127.0.0.1:8002", false)); 
+mesh.Add(new Peer("127.0.0.1:8001"));
+mesh.Add(new Peer("127.0.0.1:8002")); 
 
 // implement callbacks
 
