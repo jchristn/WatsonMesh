@@ -30,6 +30,19 @@ Under the hood, ```WatsonMesh``` relies on ```WatsonTcp``` (see https://github.c
 
 Refer to the ```Test``` project for a full working example.  Multiple instances can be started with each server listening on a different port.  Then add each node as peers on each of the nodes you start.
 
+## Local vs External Connections
+
+**IMPORTANT**
+
+When defining the local server configuration IP:port, use the form ```[ipaddress]:[port]```, i.e. if your IP address is ```10.134.16.54``` and you wish to listen on port ```9000```, use ```10.134.16.54:9000```.
+
+* If you specify ```127.0.0.1``` as the IP address, it will only be able to accept connections from within the local host.  
+* To accept connections from other machines:
+  * Use a specific interface IP address, or
+  * Use ```null```, ```*```, ```+```, or ```0.0.0.0``` for the listener IP address (requires admin privileges to listen on any IP address)
+* Make sure you create a permit rule on your firewall to allow inbound connections on that port
+* If you use a port number under 1024, admin privileges will be required
+
 ## Example
 
 The following example shows a simple example using byte arrays and without SSL.  Make sure you start instances for mesh nodes running on ports 8000, 8001, and 8002.  You can use multiple instances of the ```Test``` project to see a more complete example. 
