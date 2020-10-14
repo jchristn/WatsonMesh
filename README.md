@@ -46,7 +46,7 @@ WatsonMesh will not work in environments where NAT (Network Address Translation)
 
 The following example shows a simple example using byte arrays and without SSL.  Make sure you start instances for mesh nodes running on ports 8000, 8001, and 8002.  You can use multiple instances of the ```Test``` project to see a more complete example. 
 
-```
+```csharp
 using WatsonMesh; 
 
 // initialize
@@ -86,8 +86,7 @@ static SyncResponse SyncMessageReceived(MessageReceivedEventArgs args)
 	return new SyncResponse(SyncResponseStatus.Success, "Hello back at you!");
 }
 
-// send messages
- 
+// send messages 
 if (!mesh.Send("127.0.0.1:8001", "Hello, world!")) { // handle errors }
 if (!mesh.Broadcast("Hello, world!")) { // handle errors }
 SyncResponse resp = mesh.SendSync("127.0.0.1:8001", 5000, "Hello, world!");
