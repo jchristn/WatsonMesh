@@ -2,13 +2,17 @@
 
 ## Current Version
 
+v4.0.0
+
+- Dependency update and changes (thank you @cee-sharp)
+
+## Previous Versions
+
 v3.1.0
 
 - Breaking changes
 - Now only ```127.0.0.1``` or a valid IP address bound to a local network adapter are allowed
 - Constructor changes to ```MeshNode```
-
-## Previous Versions
 
 v3.0.0
 

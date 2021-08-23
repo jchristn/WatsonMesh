@@ -6,11 +6,9 @@
 
 A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.
 
-## New in v3.1.0
+## New in v4.0.0
 
-- Breaking changes
-- Now only ```127.0.0.1``` or a valid IP address bound to a local network adapter are allowed
-- Constructor changes to ```MeshNode```
+- Dependency update and changes (thank you @cee-sharp)
 
 ## What is Watson Mesh?
 
