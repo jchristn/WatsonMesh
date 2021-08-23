@@ -97,20 +97,20 @@ namespace WatsonMesh
                 Logger?.Invoke("[MeshClient] Starting TCP client to connect to " + ip + ":" + port);
             }
 
-            _TcpClient.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
-            _TcpClient.MutuallyAuthenticate = _Settings.MutuallyAuthenticate; 
-            _TcpClient.StreamBufferSize = _Settings.StreamBufferSize; 
+            _TcpClient.Settings.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
+            _TcpClient.Settings.MutuallyAuthenticate = _Settings.MutuallyAuthenticate; 
+            _TcpClient.Settings.StreamBufferSize = _Settings.StreamBufferSize; 
 
-            _TcpClient.AuthenticationRequested = MeshClientAuthenticationRequested;
-            _TcpClient.AuthenticationSucceeded += MeshClientAuthenticationSucceeded;
-            _TcpClient.AuthenticationFailure += MeshClientAuthenticationFailure;
-            _TcpClient.ServerConnected += MeshClientServerConnected;
-            _TcpClient.ServerDisconnected += MeshClientServerDisconnected;
-            _TcpClient.StreamReceived += MeshClientStreamReceived;
+            //_TcpClient.Events.AuthenticationRequested = MeshClientAuthenticationRequested;
+            _TcpClient.Events.AuthenticationSucceeded += MeshClientAuthenticationSucceeded;
+            _TcpClient.Events.AuthenticationFailure += MeshClientAuthenticationFailure;
+            _TcpClient.Events.ServerConnected += MeshClientServerConnected;
+            _TcpClient.Events.ServerDisconnected += MeshClientServerDisconnected;
+            _TcpClient.Events.StreamReceived += MeshClientStreamReceived;
 
             try
             {
-                _TcpClient.Start();
+                _TcpClient.Connect();
             }
             catch (SocketException)
             {
@@ -243,7 +243,7 @@ namespace WatsonMesh
             ServerDisconnected?.Invoke(this, new ServerConnectionEventArgs(PeerNode));
         }
          
-        private void MeshClientStreamReceived(object sender, StreamReceivedFromServerEventArgs args)
+        private void MeshClientStreamReceived(object sender, StreamReceivedEventArgs args)
         {
             Logger?.Invoke("[MeshClient] **UNSOLICITED** Message received from server " + PeerNode.IpPort + ": " + args.ContentLength + " bytes, ignoring");
         }

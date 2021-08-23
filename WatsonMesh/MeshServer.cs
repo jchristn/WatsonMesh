@@ -15,7 +15,7 @@ namespace WatsonMesh
     { 
         internal event EventHandler<ClientConnectionEventArgs> ClientConnected; 
         internal event EventHandler<ClientConnectionEventArgs> ClientDisconnected; 
-        internal event EventHandler<StreamReceivedFromClientEventArgs> MessageReceived; 
+        internal event EventHandler<StreamReceivedEventArgs> MessageReceived; 
         internal Action<string> Logger = null;
          
         private bool _Disposed = false;
@@ -99,14 +99,14 @@ namespace WatsonMesh
                 Logger?.Invoke("[MeshServer] Starting TCP server on IP:port " + _IpPort);
             }
 
-            _TcpServer.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
-            _TcpServer.MutuallyAuthenticate = _Settings.MutuallyAuthenticate;
-            _TcpServer.PresharedKey = _Settings.PresharedKey; 
-            _TcpServer.StreamBufferSize = _Settings.StreamBufferSize;
+            _TcpServer.Settings.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
+            _TcpServer.Settings.MutuallyAuthenticate = _Settings.MutuallyAuthenticate;
+            _TcpServer.Settings.PresharedKey = _Settings.PresharedKey; 
+            _TcpServer.Settings.StreamBufferSize = _Settings.StreamBufferSize;
 
-            _TcpServer.ClientConnected += MeshServerClientConnected;
-            _TcpServer.ClientDisconnected += MeshServerClientDisconnected;
-            _TcpServer.StreamReceived += MeshServerStreamReceived;
+            _TcpServer.Events.ClientConnected += MeshServerClientConnected;
+            _TcpServer.Events.ClientDisconnected += MeshServerClientDisconnected;
+            _TcpServer.Events.StreamReceived += MeshServerStreamReceived;
 
             _TcpServer.Start();
 
@@ -135,19 +135,19 @@ namespace WatsonMesh
             _Disposed = true;
         }
 
-        private void MeshServerClientConnected(object sender, ClientConnectedEventArgs args)
+        private void MeshServerClientConnected(object sender, ConnectionEventArgs args)
         {
             Logger?.Invoke("[MeshServer] Client " + args.IpPort + " connected");
             ClientConnected?.Invoke(this, new ClientConnectionEventArgs(args.IpPort));
         }
 
-        private void MeshServerClientDisconnected(object sender, ClientDisconnectedEventArgs args)
+        private void MeshServerClientDisconnected(object sender, DisconnectionEventArgs args)
         {
             Logger?.Invoke("[MeshServer] Client " + args.IpPort + " disconnected");
             ClientDisconnected?.Invoke(this, new ClientConnectionEventArgs(args.IpPort));
         }
          
-        private void MeshServerStreamReceived(object sender, StreamReceivedFromClientEventArgs args)
+        private void MeshServerStreamReceived(object sender, StreamReceivedEventArgs args)
         {
             Logger?.Invoke("[MeshServer] Message received from client " + args.IpPort + ": " + args.ContentLength + " bytes");
             MessageReceived?.Invoke(this, args);

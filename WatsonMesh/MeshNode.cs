@@ -904,7 +904,7 @@ namespace WatsonMesh
         {  
         }
          
-        private void MeshServerStreamReceived(object sender, StreamReceivedFromClientEventArgs args)
+        private void MeshServerStreamReceived(object sender, StreamReceivedEventArgs args)
         {
             try
             {
