@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1;netcoreapp3.1;net461;net5.0;net6.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>4.0.0.1</Version>
+    <Version>4.0.0.2</Version>
     <Authors>Joel Christner</Authors>
     <Description>A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.  Does not support NAT.</Description>
     <Copyright>(c)2021 Joel Christner</Copyright>
@@ -32,7 +32,7 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="WatsonTcp" Version="4.8.12" />
+    <PackageReference Include="WatsonTcp" Version="4.8.14.2" />
   </ItemGroup>
 
   <ItemGroup>
