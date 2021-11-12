@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WatsonMesh", "WatsonMesh\Wa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test", "Test\Test.csproj", "{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WatsonMesh.test", "WatsonMesh.test\WatsonMesh.test.csproj", "{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WatsonMesh.Test", "WatsonMesh.test\WatsonMesh.Test.csproj", "{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

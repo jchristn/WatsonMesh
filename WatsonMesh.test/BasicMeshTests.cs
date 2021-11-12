@@ -80,7 +80,6 @@ namespace WatsonMesh.test
             Assert.That(result, Is.EqualTo("Hello World!"), "What we received should be what we sent");
         }
 
-
         [Test, Sequential]
         public void TestSending100Messages()
         {
@@ -114,11 +113,9 @@ namespace WatsonMesh.test
 
             waitForMe.WaitOne(5000);
 
-            Assert.That(result.Count, Is.EqualTo(100), "We have sent 100 messages, this is what we expect o receive");
+            Assert.That(result.Count, Is.EqualTo(100), "We have sent 100 messages, this is what we expect to receive");
             for(int i = 0; i < 100; i++)
                 Assert.That(result[i], Is.EqualTo("Hello World!"), "What we received should be what we sent");
         }
-
-
     }
 }
