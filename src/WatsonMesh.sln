@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31606.5
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WatsonMesh", "WatsonMesh\WatsonMesh.csproj", "{F458B6A2-292C-46DB-80C6-AA5027127F13}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test", "Test\Test.csproj", "{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WatsonMesh.Test", "WatsonMesh.test\WatsonMesh.Test.csproj", "{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F458B6A2-292C-46DB-80C6-AA5027127F13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F458B6A2-292C-46DB-80C6-AA5027127F13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F458B6A2-292C-46DB-80C6-AA5027127F13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F458B6A2-292C-46DB-80C6-AA5027127F13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {52B921C7-205A-4BE6-9137-9A727173FC0C}
+	EndGlobalSection
+EndGlobal
