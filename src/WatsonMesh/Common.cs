@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Security;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace WatsonMesh
 {
@@ -15,6 +11,11 @@ namespace WatsonMesh
     /// </summary>
     internal static class Common
     {
+        static readonly JsonSerializerOptions _options = new JsonSerializerOptions()
+        {
+            WriteIndented = true
+        };
+
         internal static bool InputBoolean(string question, bool yesDefault)
         {
             Console.Write(question);
@@ -152,14 +153,18 @@ namespace WatsonMesh
         internal static byte[] Sha1(byte[] data)
         {
             if (data == null || data.Length < 1) return null;
-            SHA1Managed s = new SHA1Managed();
+
+            using var s = SHA1.Create();
+
             return s.ComputeHash(data);
         }
 
         internal static byte[] Sha256(byte[] data)
         {
             if (data == null || data.Length < 1) return null;
-            SHA256Managed s = new SHA256Managed();
+
+            using var s = SHA256.Create();
+
             return s.ComputeHash(data);
         }
 
@@ -266,23 +271,27 @@ namespace WatsonMesh
 
             if (pretty)
             {
-                json = JsonConvert.SerializeObject(
-                  obj,
-                  Newtonsoft.Json.Formatting.Indented,
-                  new JsonSerializerSettings
-                  {
-                      NullValueHandling = NullValueHandling.Ignore,
-                      DateTimeZoneHandling = DateTimeZoneHandling.Utc,
-                  });
+                json = JsonSerializer.Serialize(obj, _options);
+
+                //json = JsonConvert.SerializeObject(
+                //  obj,
+                //  Newtonsoft.Json.Formatting.Indented,
+                //  new JsonSerializerSettings
+                //  {
+                //      NullValueHandling = NullValueHandling.Ignore,
+                //      DateTimeZoneHandling = DateTimeZoneHandling.Utc,
+                //  });
             }
             else
             {
-                json = JsonConvert.SerializeObject(obj,
-                  new JsonSerializerSettings
-                  {
-                      NullValueHandling = NullValueHandling.Ignore,
-                      DateTimeZoneHandling = DateTimeZoneHandling.Utc
-                  });
+                json = JsonSerializer.Serialize(obj);
+
+                //json = JsonConvert.SerializeObject(obj,
+                //  new JsonSerializerSettings
+                //  {
+                //      NullValueHandling = NullValueHandling.Ignore,
+                //      DateTimeZoneHandling = DateTimeZoneHandling.Utc
+                //  });
             }
 
             return json;
@@ -291,7 +300,7 @@ namespace WatsonMesh
         internal static T DeserializeJson<T>(string json)
         {
             if (String.IsNullOrEmpty(json)) throw new ArgumentNullException(nameof(json));
-            return JsonConvert.DeserializeObject<T>(json);
+            return JsonSerializer.Deserialize<T>(json);
         }
 
         internal static T DeserializeJson<T>(byte[] data)

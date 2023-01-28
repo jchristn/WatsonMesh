@@ -137,19 +137,19 @@ namespace WatsonMesh
 
         private void MeshServerClientConnected(object sender, ConnectionEventArgs args)
         {
-            Logger?.Invoke("[MeshServer] Client " + args.IpPort + " connected");
-            ClientConnected?.Invoke(this, new ClientConnectionEventArgs(args.IpPort));
+            Logger?.Invoke("[MeshServer] Client " + args.Client.IpPort + " connected");
+            ClientConnected?.Invoke(this, new ClientConnectionEventArgs(args.Client.IpPort));
         }
 
         private void MeshServerClientDisconnected(object sender, DisconnectionEventArgs args)
         {
-            Logger?.Invoke("[MeshServer] Client " + args.IpPort + " disconnected");
-            ClientDisconnected?.Invoke(this, new ClientConnectionEventArgs(args.IpPort));
+            Logger?.Invoke("[MeshServer] Client " + args.Client.IpPort + " disconnected");
+            ClientDisconnected?.Invoke(this, new ClientConnectionEventArgs(args.Client.IpPort));
         }
          
         private void MeshServerStreamReceived(object sender, StreamReceivedEventArgs args)
         {
-            Logger?.Invoke("[MeshServer] Message received from client " + args.IpPort + ": " + args.ContentLength + " bytes");
+            Logger?.Invoke("[MeshServer] Message received from client " + args.Client.IpPort + ": " + args.ContentLength + " bytes");
             MessageReceived?.Invoke(this, args);
         }
 
