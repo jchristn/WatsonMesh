@@ -19,6 +19,58 @@
             Commonly-used static methods.
             </summary>
         </member>
+        <member name="T:WatsonMesh.DefaultSerializationHelper">
+            <summary>
+            Default serialization helper.
+            </summary>
+        </member>
+        <member name="M:WatsonMesh.DefaultSerializationHelper.DeserializeJson``1(System.String)">
+            <summary>
+            Deserialize JSON to an instance.
+            </summary>
+            <typeparam name="T">Type.</typeparam>
+            <param name="json">JSON string.</param>
+            <returns>Instance.</returns>
+        </member>
+        <member name="M:WatsonMesh.DefaultSerializationHelper.SerializeJson(System.Object,System.Boolean)">
+            <summary>
+            Serialize object to JSON.
+            </summary>
+            <param name="obj">Object.</param>
+            <param name="pretty">Pretty print.</param>
+            <returns>JSON.</returns>
+        </member>
+        <member name="M:WatsonMesh.DefaultSerializationHelper.InstantiateConverter">
+            <summary>
+            Instantiation method to support fixups for various environments, e.g. Unity.
+            </summary>
+        </member>
+        <member name="T:WatsonMesh.ISerializationHelper">
+            <summary>
+            Serialization helper.
+            </summary>
+        </member>
+        <member name="M:WatsonMesh.ISerializationHelper.DeserializeJson``1(System.String)">
+            <summary>
+            Deserialize from JSON to an object of the specified type.
+            </summary>
+            <typeparam name="T">Type.</typeparam>
+            <param name="json">JSON string.</param>
+            <returns>Instance.</returns>
+        </member>
+        <member name="M:WatsonMesh.ISerializationHelper.SerializeJson(System.Object,System.Boolean)">
+            <summary>
+            Serialize from object to JSON.
+            </summary>
+            <param name="obj">Object.</param>
+            <param name="pretty">Pretty print.</param>
+            <returns>JSON.</returns>
+        </member>
+        <member name="M:WatsonMesh.ISerializationHelper.InstantiateConverter">
+            <summary>
+            Instantiation method to support fixups for various environments, e.g. Unity.
+            </summary>
+        </member>
         <member name="M:WatsonMesh.MeshClient.Dispose">
             <summary>
             Tear down the client and dispose of background workers.

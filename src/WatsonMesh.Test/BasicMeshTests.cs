@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace WatsonMesh.test
 {
@@ -14,7 +15,7 @@ namespace WatsonMesh.test
         private ManualResetEvent _connectEvent;
         private ManualResetEvent _disConnectEvent;
 
-        [OneTimeSetUp] 
+        [OneTimeSetUp]
         public void CreateTestEnvironment()
         {
             _connectEvent = new ManualResetEvent(false);
@@ -38,10 +39,10 @@ namespace WatsonMesh.test
             _connectEvent?.Set();
         }
 
-        private void IntMeshMessagerecieved(object sender, MessageReceivedEventArgs e)
+        private async void IntMeshMessagerecieved(object sender, MessageReceivedEventArgs e)
         {
             // just echo back, what we sent
-            _testNode.SendAsync(e.SourceIpPort, e.Data);
+            await _testNode.SendAsync(e.SourceIpPort, e.Data);
         }
 
         [OneTimeTearDown]
@@ -52,7 +53,7 @@ namespace WatsonMesh.test
         }
 
         [Test, Sequential]
-        public void SendOneMessage()
+        public async Task SendOneMessage()
         {
             _connectEvent.Reset();
             _disConnectEvent.Reset();
@@ -68,12 +69,13 @@ namespace WatsonMesh.test
 
             var waitForMe = new ManualResetEvent(false);
 
-            otherNode.MessageReceived += (sender, args) => {
+            otherNode.MessageReceived += (sender, args) =>
+            {
                 result = Encoding.UTF8.GetString(args.Data);
                 waitForMe.Set();
             };
 
-            otherNode.SendAsync("127.0.0.1:" + MeshPort, dataToSend);
+            await otherNode.SendAsync("127.0.0.1:" + MeshPort, dataToSend);
 
             waitForMe.WaitOne(5000);
 
@@ -81,12 +83,12 @@ namespace WatsonMesh.test
         }
 
         [Test, Sequential]
-        public void TestSending100Messages()
+        public async Task TestSending100Messages()
         {
             _connectEvent.Reset();
             _disConnectEvent.Reset();
 
-            var otherNode = new MeshNode("127.0.0.1", MeshPort+1);
+            var otherNode = new MeshNode("127.0.0.1", MeshPort + 1);
             otherNode.Add(new MeshPeer("127.0.0.1:" + MeshPort));
             otherNode.Start();
 
@@ -97,24 +99,25 @@ namespace WatsonMesh.test
 
             var waitForMe = new ManualResetEvent(false);
 
-            otherNode.MessageReceived += (sender,args) => {
+            otherNode.MessageReceived += (sender, args) =>
+            {
                 var tmp = Encoding.UTF8.GetString(args.Data);
                 lock (result)
                     result.Add(tmp);
-                
+
                 if (result.Count == 100)
                     waitForMe.Set();
             };
 
             for (int i = 0; i < 100; i++)
             {
-                otherNode.SendAsync("127.0.0.1:" + MeshPort, dataToSend);
+                await otherNode.SendAsync("127.0.0.1:" + MeshPort, dataToSend);
             }
 
             waitForMe.WaitOne(5000);
 
             Assert.That(result.Count, Is.EqualTo(100), "We have sent 100 messages, this is what we expect to receive");
-            for(int i = 0; i < 100; i++)
+            for (int i = 0; i < 100; i++)
                 Assert.That(result[i], Is.EqualTo("Hello World!"), "What we received should be what we sent");
         }
     }
