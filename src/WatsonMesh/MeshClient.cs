@@ -14,7 +14,7 @@ namespace WatsonMesh
 {
     internal class MeshClient : IDisposable
     {
-        #region Public-Members
+        #region Internal-Members
          
         internal MeshPeer PeerNode = null;
         internal Func<string> AuthenticationRequested = null; 
@@ -22,7 +22,6 @@ namespace WatsonMesh
         internal event EventHandler AuthenticationFailed;  
         internal event EventHandler<ServerConnectionEventArgs> ServerConnected; 
         internal event EventHandler<ServerConnectionEventArgs> ServerDisconnected;
-        // internal event EventHandler<MessageReceivedEventArgs> MessageReceived;
         internal Action<string> Logger = null;
 
         internal bool Connected
@@ -41,19 +40,23 @@ namespace WatsonMesh
         private bool _Disposed = false; 
         private MeshSettings _Settings; 
         private WatsonTcpClient _TcpClient;
+        private ISerializationHelper _Serializer = new DefaultSerializationHelper();
 
         #endregion
 
         #region Constructors-and-Factories
          
-        internal MeshClient(MeshSettings settings, MeshPeer peer)
+        internal MeshClient(MeshSettings settings, MeshPeer peer, ISerializationHelper serializer)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings)); 
             if (peer == null) throw new ArgumentNullException(nameof(peer));
+            if (serializer == null) throw new ArgumentNullException(nameof(serializer));
 
-            _Settings = settings; 
+            _Settings = settings;
+            _Serializer = serializer;
+
             PeerNode = peer;
-
+            
             Logger?.Invoke("[MeshClient] Initialized to connect to " + PeerNode.IpPort);
         }
 
@@ -86,7 +89,7 @@ namespace WatsonMesh
                     PeerNode.PfxCertificateFile,
                     PeerNode.PfxCertificatePassword);
 
-                Logger?.Invoke("[MeshClient] Starting TCP client with SSL to connect to " + ip + ":" + port);
+                Logger?.Invoke("[MeshClient] Starting ssl://" + ip + ":" + port);
             }
             else
             {
@@ -94,14 +97,13 @@ namespace WatsonMesh
                     ip,
                     port);
 
-                Logger?.Invoke("[MeshClient] Starting TCP client to connect to " + ip + ":" + port);
+                Logger?.Invoke("[MeshClient] Starting tcp://" + ip + ":" + port);
             }
 
             _TcpClient.Settings.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
             _TcpClient.Settings.MutuallyAuthenticate = _Settings.MutuallyAuthenticate; 
             _TcpClient.Settings.StreamBufferSize = _Settings.StreamBufferSize; 
 
-            //_TcpClient.Events.AuthenticationRequested = MeshClientAuthenticationRequested;
             _TcpClient.Events.AuthenticationSucceeded += MeshClientAuthenticationSucceeded;
             _TcpClient.Events.AuthenticationFailure += MeshClientAuthenticationFailure;
             _TcpClient.Events.ServerConnected += MeshClientServerConnected;
@@ -119,7 +121,7 @@ namespace WatsonMesh
             }
             catch (Exception e)
             {
-                Logger?.Invoke("[MeshClient] Client exception: " + Environment.NewLine + Common.SerializeJson(e, true));
+                Logger?.Invoke("[MeshClient] Client exception: " + Environment.NewLine + _Serializer.SerializeJson(e, true));
                 Task unawaited = Task.Run(() => ReconnectToServer());
                 ServerDisconnected?.Invoke(this, new ServerConnectionEventArgs(PeerNode));
             } 
@@ -137,7 +139,7 @@ namespace WatsonMesh
             }
             catch (Exception e)
             {
-                Logger?.Invoke("[MeshClient] Send exception: " + Environment.NewLine + Common.SerializeJson(e, true));
+                Logger?.Invoke("[MeshClient] Send exception: " + Environment.NewLine + _Serializer.SerializeJson(e, true));
                 return false;
             }
         }
@@ -154,7 +156,7 @@ namespace WatsonMesh
             }
             catch (Exception e)
             {
-                Logger?.Invoke("[MeshClient] Send exception: " + Environment.NewLine + Common.SerializeJson(e, true));
+                Logger?.Invoke("[MeshClient] Send exception: " + Environment.NewLine + _Serializer.SerializeJson(e, true));
                 return false;
             }
         }
@@ -169,7 +171,7 @@ namespace WatsonMesh
             }
             catch (Exception e)
             {
-                Logger?.Invoke("[MeshClient] SendAsync exception: " + Environment.NewLine + Common.SerializeJson(e, true));
+                Logger?.Invoke("[MeshClient] SendAsync exception: " + Environment.NewLine + _Serializer.SerializeJson(e, true));
                 return false;
             }
         }
@@ -186,7 +188,7 @@ namespace WatsonMesh
             }
             catch (Exception e)
             {
-                Logger?.Invoke("[MeshClient] SendAsync exception: " + Environment.NewLine + Common.SerializeJson(e, true));
+                Logger?.Invoke("[MeshClient] SendAsync exception: " + Environment.NewLine + _Serializer.SerializeJson(e, true));
                 return false;
             }
         }

@@ -11,12 +11,75 @@
         </member>
         <member name="P:WatsonMesh.ClientConnectionEventArgs.IpPort">
             <summary>
-            The IP:port of the client.
+            Client metadata.
             </summary>
+        </member>
+        <member name="M:WatsonMesh.ClientConnectionEventArgs.#ctor(System.String)">
+            <summary>
+            Instantiate.
+            </summary>
+            <param name="ipPort">IP:port.</param>
         </member>
         <member name="T:WatsonMesh.Common">
             <summary>
             Commonly-used static methods.
+            </summary>
+        </member>
+        <member name="T:WatsonMesh.DefaultSerializationHelper">
+            <summary>
+            Default serialization helper.
+            </summary>
+        </member>
+        <member name="M:WatsonMesh.DefaultSerializationHelper.#ctor">
+            <summary>
+            Instantiate.
+            </summary>
+        </member>
+        <member name="M:WatsonMesh.DefaultSerializationHelper.DeserializeJson``1(System.String)">
+            <summary>
+            Deserialize JSON to an instance.
+            </summary>
+            <typeparam name="T">Type.</typeparam>
+            <param name="json">JSON string.</param>
+            <returns>Instance.</returns>
+        </member>
+        <member name="M:WatsonMesh.DefaultSerializationHelper.SerializeJson(System.Object,System.Boolean)">
+            <summary>
+            Serialize object to JSON.
+            </summary>
+            <param name="obj">Object.</param>
+            <param name="pretty">Pretty print.</param>
+            <returns>JSON.</returns>
+        </member>
+        <member name="M:WatsonMesh.DefaultSerializationHelper.InstantiateConverter">
+            <summary>
+            Instantiation method to support fixups for various environments, e.g. Unity.
+            </summary>
+        </member>
+        <member name="T:WatsonMesh.ISerializationHelper">
+            <summary>
+            Serialization helper.
+            </summary>
+        </member>
+        <member name="M:WatsonMesh.ISerializationHelper.DeserializeJson``1(System.String)">
+            <summary>
+            Deserialize from JSON to an object of the specified type.
+            </summary>
+            <typeparam name="T">Type.</typeparam>
+            <param name="json">JSON string.</param>
+            <returns>Instance.</returns>
+        </member>
+        <member name="M:WatsonMesh.ISerializationHelper.SerializeJson(System.Object,System.Boolean)">
+            <summary>
+            Serialize from object to JSON.
+            </summary>
+            <param name="obj">Object.</param>
+            <param name="pretty">Pretty print.</param>
+            <returns>JSON.</returns>
+        </member>
+        <member name="M:WatsonMesh.ISerializationHelper.InstantiateConverter">
+            <summary>
+            Instantiation method to support fixups for various environments, e.g. Unity.
             </summary>
         </member>
         <member name="M:WatsonMesh.MeshClient.Dispose">
@@ -26,7 +89,7 @@
         </member>
         <member name="T:WatsonMesh.MeshNode">
             <summary>
-            Watson mesh networking library.
+            Watson mesh node.
             </summary>
         </member>
         <member name="P:WatsonMesh.MeshNode.IsHealthy">
@@ -60,6 +123,11 @@
         <member name="F:WatsonMesh.MeshNode.Logger">
             <summary>
             Function to invoke when sending log messages.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshNode.Serializer">
+            <summary>
+            Serializer.
             </summary>
         </member>
         <member name="M:WatsonMesh.MeshNode.#ctor(System.String,System.Int32)">
@@ -401,6 +469,11 @@
             A peer WatsonMesh node.
             </summary>
         </member>
+        <member name="P:WatsonMesh.MeshPeer.GUID">
+            <summary>
+            GUID.
+            </summary>
+        </member>
         <member name="P:WatsonMesh.MeshPeer.Ip">
             <summary>
             IP address of the peer.
@@ -510,11 +583,6 @@
             Message object, exchanged between peers in the mesh network.
             </summary>
         </member>
-        <member name="M:WatsonMesh.Message.#ctor">
-            <summary>
-            DO NOT USE.  Use the more specific constructor.
-            </summary>
-        </member>
         <member name="T:WatsonMesh.MessageReceivedEventArgs">
             <summary>
             Event arguments passed when a message is received.
@@ -581,12 +649,6 @@
             Using Data will fully read the contents of DataStream.
             </summary>
         </member>
-        <member name="M:WatsonMesh.MessageReceivedEventArgs.ToString">
-            <summary>
-            Generate a human-readable string version of this object.
-            </summary>
-            <returns>String.</returns>
-        </member>
         <member name="T:WatsonMesh.MessageType">
             <summary>
             The type of message.  Reserved for future use.
@@ -597,22 +659,15 @@
             Application data.
             </summary>
         </member>
-        <member name="F:WatsonMesh.PendingResponse.Expiration">
+        <member name="T:WatsonMesh.MessageTypeEnum">
             <summary>
-            The time at which the response expires.
-            </summary>
-        </member>
-        <member name="F:WatsonMesh.PendingResponse.ResponseMessage">
-            <summary>
-            The response message.
-            </summary>
-        </member>
-        <member name="M:WatsonMesh.PendingResponse.#ctor(System.DateTime,WatsonMesh.Message)">
-            <summary>
-            Initialize the object.
+            The type of message.  Reserved for future use.
             </summary> 
-            <param name="expiration">The time at which the response expires.</param>
-            <param name="msg">The response message.</param>
+        </member>
+        <member name="F:WatsonMesh.MessageTypeEnum.Data">
+            <summary>
+            Application data.
+            </summary>
         </member>
         <member name="T:WatsonMesh.ServerConnectionEventArgs">
             <summary>
@@ -708,6 +763,41 @@
             </summary>
         </member>
         <member name="F:WatsonMesh.SyncResponseStatus.PeerNotFound">
+            <summary>
+            Unable to find the requested peer.
+            </summary>
+        </member>
+        <member name="T:WatsonMesh.SyncResponseStatusEnum">
+            <summary>
+            Status for synchronous response objects.
+            </summary>
+        </member>
+        <member name="F:WatsonMesh.SyncResponseStatusEnum.Unknown">
+            <summary>
+            Unknown.
+            </summary>
+        </member>
+        <member name="F:WatsonMesh.SyncResponseStatusEnum.Success">
+            <summary>
+            Success.
+            </summary>
+        </member>
+        <member name="F:WatsonMesh.SyncResponseStatusEnum.SendFailure">
+            <summary>
+            Failure to send.
+            </summary>
+        </member>
+        <member name="F:WatsonMesh.SyncResponseStatusEnum.Failed">
+            <summary>
+            Failed.
+            </summary>
+        </member>
+        <member name="F:WatsonMesh.SyncResponseStatusEnum.Expired">
+            <summary>
+            Request expired or response arrived too late.
+            </summary>
+        </member>
+        <member name="F:WatsonMesh.SyncResponseStatusEnum.PeerNotFound">
             <summary>
             Unable to find the requested peer.
             </summary>

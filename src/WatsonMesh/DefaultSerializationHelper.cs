@@ -16,11 +16,17 @@ namespace WatsonMesh
 
         #region Private-Members
 
-        private bool _Pretty = false;
-
         #endregion
 
         #region Constructors-and-Factories
+
+        /// <summary>
+        /// Instantiate.
+        /// </summary>
+        public DefaultSerializationHelper()
+        {
+            InstantiateConverter();
+        }
 
         #endregion
 
@@ -49,11 +55,11 @@ namespace WatsonMesh
 
             if (!pretty)
             {
-                return JsonSerializer.Serialize(obj);
+                return JsonSerializer.Serialize(obj, new JsonSerializerOptions { WriteIndented = false, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
             }
             else
             {
-                return JsonSerializer.Serialize(obj, new JsonSerializerOptions { WriteIndented = true });
+                return JsonSerializer.Serialize(obj, new JsonSerializerOptions { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
             }
         }
 

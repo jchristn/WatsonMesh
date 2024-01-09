@@ -9,6 +9,8 @@ namespace WatsonMesh
     /// </summary>
     public interface ISerializationHelper
     {
+        #region Public-Members
+
         /// <summary>
         /// Deserialize from JSON to an object of the specified type.
         /// </summary>
@@ -29,5 +31,23 @@ namespace WatsonMesh
         /// Instantiation method to support fixups for various environments, e.g. Unity.
         /// </summary>
         void InstantiateConverter();
+
+        #endregion
+
+        #region Private-Members
+
+        #endregion
+
+        #region Constructors-and-Factories
+
+        #endregion
+
+        #region Public-Methods
+
+        #endregion
+
+        #region Private-Methods
+
+        #endregion
     }
 }

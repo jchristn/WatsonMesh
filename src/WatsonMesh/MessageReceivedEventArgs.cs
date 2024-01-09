@@ -9,21 +9,8 @@ namespace WatsonMesh
     /// Event arguments passed when a message is received.
     /// </summary>
     public class MessageReceivedEventArgs : EventArgs
-    {  
-        internal MessageReceivedEventArgs(Message msg)
-        {
-            Id = msg.Id;
-            IsBroadcast = msg.IsBroadcast;
-            SyncRequest = msg.SyncRequest;
-            SyncResponse = msg.SyncResponse;
-            TimeoutMs = msg.TimeoutMs;
-            SourceIpPort = msg.SourceIpPort;
-            DestinationIpPort = msg.DestinationIpPort;
-            Type = msg.Type;
-            Metadata = msg.Metadata;
-            ContentLength = msg.ContentLength;
-            DataStream = msg.DataStream;  
-        }
+    {
+        #region Public-Members
 
         /// <summary>
         /// Unique ID for the message. 
@@ -106,31 +93,40 @@ namespace WatsonMesh
             }
         }
 
+        #endregion
+
+        #region Private-Members
+
         private Dictionary<object, object> _Metadata = new Dictionary<object, object>();
         private byte[] _Data = null;
 
-        /// <summary>
-        /// Generate a human-readable string version of this object.
-        /// </summary>
-        /// <returns>String.</returns>
-        public override string ToString()
+        #endregion
+
+        #region Constructors-and-Factories
+
+        internal MessageReceivedEventArgs(Message msg)
         {
-            string ret = "";
-            ret += "---" + Environment.NewLine;
-            ret += "  Id            : " + Id + Environment.NewLine;
-            ret += "  SyncRequest   : " + SyncRequest + Environment.NewLine;
-            ret += "  SyncResponse  : " + SyncResponse + Environment.NewLine;
-            ret += "  TimeoutMs     : " + TimeoutMs + Environment.NewLine;
-            ret += "  Src->Dst      : " + SourceIpPort + " -> " + DestinationIpPort + Environment.NewLine;
-            ret += "  Type          : " + Type.ToString() + Environment.NewLine;
-            ret += "  Metadata      : " + Common.SerializeJson(Metadata, false) + Environment.NewLine;
-            ret += "  ContentLength : " + ContentLength + " bytes" + Environment.NewLine;
-
-            ret += "  DataStream    : ";
-            if (DataStream != null) ret += "[present]" + Environment.NewLine;
-            else ret += "[not present]" + Environment.NewLine;
-
-            return ret;
+            Id = msg.Id;
+            IsBroadcast = msg.IsBroadcast;
+            SyncRequest = msg.SyncRequest;
+            SyncResponse = msg.SyncResponse;
+            TimeoutMs = msg.TimeoutMs;
+            SourceIpPort = msg.SourceIpPort;
+            DestinationIpPort = msg.DestinationIpPort;
+            Type = msg.Type;
+            Metadata = msg.Metadata;
+            ContentLength = msg.ContentLength;
+            DataStream = msg.DataStream;
         }
+
+        #endregion
+
+        #region Public-Methods
+
+        #endregion
+
+        #region Private-Methods
+
+        #endregion
     }
 }

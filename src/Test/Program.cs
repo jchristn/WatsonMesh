@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using GetSomeInput;
 using WatsonMesh;
 
 namespace TestNetCore
@@ -28,7 +29,7 @@ namespace TestNetCore
             }
             else
             {
-                _IpPort = InputString("Local IP:port:", "127.0.0.1:8000", false);
+                _IpPort = Inputty.GetString("Local IP:port:", "127.0.0.1:8000", false);
                 ParseIpPort(_IpPort, out _Ip, out _Port);
             }
 
@@ -62,7 +63,7 @@ namespace TestNetCore
 
             while (_RunForever)
             {
-                string userInput = InputString("WatsonMesh [? for help] >", null, false);
+                string userInput = Inputty.GetString("WatsonMesh [? for help] >", null, false);
 
                 List<MeshPeer> peers;
 
@@ -131,14 +132,14 @@ namespace TestNetCore
                     case "add":
                         _Mesh.Add(
                             new MeshPeer(
-                                InputString("IP:port:", "127.0.0.1:8000", false),
+                                Inputty.GetString("IP:port:", "127.0.0.1:8000", false),
                                 false));
                         break;
 
                     case "del":
                         _Mesh.Remove(
                             new MeshPeer(
-                                InputString("IP:port:", "127.0.0.1:8000", false), 
+                                Inputty.GetString("IP:port:", "127.0.0.1:8000", false), 
                                 false));
                         break;
 
@@ -149,7 +150,7 @@ namespace TestNetCore
                     case "nodehealth":
                         Console.WriteLine(
                             _Mesh.IsServerConnected(
-                                InputString("IP:Port", "127.0.0.1:8000", false)));
+                                Inputty.GetString("IP:Port", "127.0.0.1:8000", false)));
                         break;
                 }
             }
@@ -208,9 +209,9 @@ namespace TestNetCore
 
         static void Send()
         {
-            string userInput = InputString("Data:", "some data", false);
+            string userInput = Inputty.GetString("Data:", "some data", false);
             if (_Mesh.Send(
-                InputString("IP:Port", "127.0.0.1:8000", false),
+                Inputty.GetString("IP:Port", "127.0.0.1:8000", false),
                 userInput))
             {
                 Console.WriteLine("Success"); 
@@ -227,9 +228,9 @@ namespace TestNetCore
             md.Add("Key1", "Val1");
             md.Add("Key2", "Val2");
 
-            string userInput = InputString("Data:", "some data", false);
+            string userInput = Inputty.GetString("Data:", "some data", false);
             if (_Mesh.Send(
-                InputString("IP:Port", "127.0.0.1:8000", false),
+                Inputty.GetString("IP:Port", "127.0.0.1:8000", false),
                 md,
                 userInput))
             {
@@ -243,10 +244,10 @@ namespace TestNetCore
 
         static void SendSync()
         {
-            string userInput = InputString("Data:", "some data", false);
+            string userInput = Inputty.GetString("Data:", "some data", false);
             SyncResponse resp = _Mesh.SendAndWait(
-                InputString("IP:Port", "127.0.0.1:8000", false),
-                InputInteger("Timeout ms:", 15000, true, false),
+                Inputty.GetString("IP:Port", "127.0.0.1:8000", false),
+                Inputty.GetInteger("Timeout ms:", 15000, true, false),
                 userInput);
 
             if (resp != null)
@@ -287,10 +288,10 @@ namespace TestNetCore
             md.Add("Key1", "Val1");
             md.Add("Key2", "Val2");
 
-            string userInput = InputString("Data:", "some data", false);
+            string userInput = Inputty.GetString("Data:", "some data", false);
             SyncResponse resp = _Mesh.SendAndWait(
-                InputString("IP:Port", "127.0.0.1:8000", false),
-                InputInteger("Timeout ms:", 15000, true, false),
+                Inputty.GetString("IP:Port", "127.0.0.1:8000", false),
+                Inputty.GetInteger("Timeout ms:", 15000, true, false),
                 md,
                 userInput);
 
@@ -328,7 +329,7 @@ namespace TestNetCore
 
         static void Broadcast()
         {
-            string userInput = InputString("Data:", "some data", false);
+            string userInput = Inputty.GetString("Data:", "some data", false);
             if (_Mesh.Broadcast(userInput))
             {
                 Console.WriteLine("Success");
@@ -382,117 +383,6 @@ namespace TestNetCore
             ms.Seek(0, SeekOrigin.Begin);
             return new SyncResponse(SyncResponseStatus.Success, respData.Length, ms);
         } 
-
-        static bool InputBoolean(string question, bool yesDefault)
-        {
-            Console.Write(question);
-
-            if (yesDefault) Console.Write(" [Y/n]? ");
-            else Console.Write(" [y/N]? ");
-
-            string userInput = Console.ReadLine();
-
-            if (String.IsNullOrEmpty(userInput))
-            {
-                if (yesDefault) return true;
-                return false;
-            }
-
-            userInput = userInput.ToLower();
-
-            if (yesDefault)
-            {
-                if (
-                    (String.Compare(userInput, "n") == 0)
-                    || (String.Compare(userInput, "no") == 0)
-                   )
-                {
-                    return false;
-                }
-
-                return true;
-            }
-            else
-            {
-                if (
-                    (String.Compare(userInput, "y") == 0)
-                    || (String.Compare(userInput, "yes") == 0)
-                   )
-                {
-                    return true;
-                }
-
-                return false;
-            }
-        }
-
-        static string InputString(string question, string defaultAnswer, bool allowNull)
-        {
-            while (true)
-            {
-                Console.Write(question);
-
-                if (!String.IsNullOrEmpty(defaultAnswer))
-                {
-                    Console.Write(" [" + defaultAnswer + "]");
-                }
-
-                Console.Write(" ");
-
-                string userInput = Console.ReadLine();
-
-                if (String.IsNullOrEmpty(userInput))
-                {
-                    if (!String.IsNullOrEmpty(defaultAnswer)) return defaultAnswer;
-                    if (allowNull) return null;
-                    else continue;
-                }
-
-                return userInput;
-            }
-        }
-
-        static int InputInteger(string question, int defaultAnswer, bool positiveOnly, bool allowZero)
-        {
-            while (true)
-            {
-                Console.Write(question);
-                Console.Write(" [" + defaultAnswer + "] ");
-
-                string userInput = Console.ReadLine();
-
-                if (String.IsNullOrEmpty(userInput))
-                {
-                    return defaultAnswer;
-                }
-
-                int ret = 0;
-                if (!Int32.TryParse(userInput, out ret))
-                {
-                    Console.WriteLine("Please enter a valid integer.");
-                    continue;
-                }
-
-                if (ret == 0)
-                {
-                    if (allowZero)
-                    {
-                        return 0;
-                    }
-                }
-
-                if (ret < 0)
-                {
-                    if (positiveOnly)
-                    {
-                        Console.WriteLine("Please enter a value greater than zero.");
-                        continue;
-                    }
-                }
-
-                return ret;
-            }
-        }
 
         static void ParseIpPort(string ipPort, out string ip, out int port)
         {

@@ -52,6 +52,7 @@ namespace WatsonMesh
 
         #region Private-Members
 
+        private ISerializationHelper _Serializer = new DefaultSerializationHelper();
         private Dictionary<object, object> _Metadata = new Dictionary<object, object>();
         private byte[] _Data = null;
 
@@ -59,22 +60,32 @@ namespace WatsonMesh
 
         #region Constructors-and-Factories
 
-        /// <summary>
-        /// DO NOT USE.  Use the more specific constructor.
-        /// </summary>
         private Message()
         {
 
         }
          
-        internal Message(string sourceIpPort, string destIpPort, int? timeoutMs, bool isBroadcast, bool syncRequest, bool syncResponse, MessageType msgType, Dictionary<object, object> metadata, long contentLength, Stream stream)
+        internal Message(
+            ISerializationHelper serializer,
+            string sourceIpPort, 
+            string destIpPort, 
+            int? timeoutMs, 
+            bool isBroadcast, 
+            bool syncRequest, 
+            bool syncResponse, 
+            MessageType msgType, 
+            Dictionary<object, object> metadata, 
+            long contentLength, 
+            Stream stream)
         {
+            if (serializer == null) throw new ArgumentNullException(nameof(serializer));
             if (String.IsNullOrEmpty(sourceIpPort)) throw new ArgumentNullException(nameof(sourceIpPort)); 
             if (String.IsNullOrEmpty(destIpPort)) throw new ArgumentNullException(nameof(destIpPort)); 
             if (contentLength < 1) throw new ArgumentException("Content length must be at least one byte.");
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
 
+            _Serializer = serializer;
             Id = Guid.NewGuid().ToString();
             IsBroadcast = isBroadcast;
             SyncRequest = syncRequest;
@@ -170,7 +181,7 @@ namespace WatsonMesh
                             Type = (MessageType)(Enum.Parse(typeof(MessageType), val));
                             break;
                         case "Metadata":
-                            Metadata = Common.DeserializeJson<Dictionary<object, object>>(val);
+                            Metadata = _Serializer.DeserializeJson<Dictionary<object, object>>(val);
                             break;
                         case "ContentLength":
                             ContentLength = Convert.ToInt64(val);
@@ -214,7 +225,7 @@ namespace WatsonMesh
             header += "SourceIpPort: " + SourceIpPort + Environment.NewLine;
             header += "DestinationIpPort: " + DestinationIpPort + Environment.NewLine;
             header += "Type: " + Type.ToString() + Environment.NewLine;
-            header += "Metadata: " + Common.SerializeJson(Metadata, false) + Environment.NewLine;
+            header += "Metadata: " + _Serializer.SerializeJson(Metadata, false) + Environment.NewLine;
             header += "ContentLength: " + ContentLength.ToString() + Environment.NewLine;
             header += Environment.NewLine;
 

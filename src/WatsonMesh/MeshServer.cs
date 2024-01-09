@@ -12,12 +12,18 @@ using WatsonTcp;
 namespace WatsonMesh
 { 
     internal class MeshServer : IDisposable
-    { 
-        internal event EventHandler<ClientConnectionEventArgs> ClientConnected; 
-        internal event EventHandler<ClientConnectionEventArgs> ClientDisconnected; 
-        internal event EventHandler<StreamReceivedEventArgs> MessageReceived; 
+    {
+        #region Internal-Members
+
+        internal event EventHandler<ClientConnectionEventArgs> ClientConnected;
+        internal event EventHandler<ClientConnectionEventArgs> ClientDisconnected;
+        internal event EventHandler<StreamReceivedEventArgs> MessageReceived;
         internal Action<string> Logger = null;
-         
+
+        #endregion
+
+        #region Private-Members
+
         private bool _Disposed = false;
         private MeshSettings _Settings;
         private string _Ip = null;
@@ -27,7 +33,11 @@ namespace WatsonMesh
         private string _PfxCertificateFile = null;
         private string _PfxCertificatePassword = null;
         private WatsonTcpServer _TcpServer;
-         
+
+        #endregion
+
+        #region Constructors-and-Factories
+
         internal MeshServer(MeshSettings settings, string ip, int port, bool ssl, string pfxCertFile, string pfxCertPass)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
@@ -66,7 +76,11 @@ namespace WatsonMesh
                 Logger?.Invoke("[MeshServer] Initialized TCP server on IP:port " + _IpPort);
             }
         }
-         
+
+        #endregion
+
+        #region Public-Methods
+
         /// <summary>
         /// Tear down the client and dispose of background workers.
         /// </summary>
@@ -78,12 +92,16 @@ namespace WatsonMesh
             Logger?.Invoke("[MeshServer] Disposed");
         }
 
+        #endregion
+
+        #region Internal-Methods
+
         internal void Start()
         {
             if (_Ssl)
             {
                 _TcpServer = new WatsonTcpServer(
-                    _Ip, 
+                    _Ip,
                     _Port,
                     _PfxCertificateFile,
                     _PfxCertificatePassword);
@@ -99,9 +117,9 @@ namespace WatsonMesh
                 Logger?.Invoke("[MeshServer] Starting TCP server on IP:port " + _IpPort);
             }
 
-            _TcpServer.Settings.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
+            _TcpServer.Settings.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates;
             _TcpServer.Settings.MutuallyAuthenticate = _Settings.MutuallyAuthenticate;
-            _TcpServer.Settings.PresharedKey = _Settings.PresharedKey; 
+            _TcpServer.Settings.PresharedKey = _Settings.PresharedKey;
             _TcpServer.Settings.StreamBufferSize = _Settings.StreamBufferSize;
 
             _TcpServer.Events.ClientConnected += MeshServerClientConnected;
@@ -115,11 +133,11 @@ namespace WatsonMesh
 
         internal void DisconnectClient(string ipPort)
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort)); 
-            Logger?.Invoke("[MeshServer] Disconnecting client " + ipPort); 
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+            Logger?.Invoke("[MeshServer] Disconnecting client " + ipPort);
             _TcpServer.DisconnectClient(ipPort);
         }
-         
+
         protected virtual void Dispose(bool disposing)
         {
             if (_Disposed)
@@ -135,21 +153,25 @@ namespace WatsonMesh
             _Disposed = true;
         }
 
+        #endregion
+
+        #region Private-Methods
+
         private void MeshServerClientConnected(object sender, ConnectionEventArgs args)
         {
-            Logger?.Invoke("[MeshServer] Client " + args.IpPort + " connected");
-            ClientConnected?.Invoke(this, new ClientConnectionEventArgs(args.IpPort));
+            Logger?.Invoke("[MeshServer] Client " + args.Client.IpPort + " connected");
+            ClientConnected?.Invoke(this, new ClientConnectionEventArgs(args.Client.IpPort));
         }
 
         private void MeshServerClientDisconnected(object sender, DisconnectionEventArgs args)
         {
-            Logger?.Invoke("[MeshServer] Client " + args.IpPort + " disconnected");
-            ClientDisconnected?.Invoke(this, new ClientConnectionEventArgs(args.IpPort));
+            Logger?.Invoke("[MeshServer] Client " + args.Client.IpPort + " disconnected");
+            ClientDisconnected?.Invoke(this, new ClientConnectionEventArgs(args.Client.IpPort));
         }
-         
+
         private void MeshServerStreamReceived(object sender, StreamReceivedEventArgs args)
         {
-            Logger?.Invoke("[MeshServer] Message received from client " + args.IpPort + ": " + args.ContentLength + " bytes");
+            Logger?.Invoke("[MeshServer] Message received from client " + args.Client.IpPort + ": " + args.ContentLength + " bytes");
             MessageReceived?.Invoke(this, args);
         }
 
@@ -166,5 +188,7 @@ namespace WatsonMesh
             }
             return ret;
         }
+
+        #endregion
     }
 }

@@ -9,14 +9,38 @@ namespace WatsonMesh
     /// </summary>
     public class ClientConnectionEventArgs : EventArgs
     {
-        internal ClientConnectionEventArgs(string ipPort)
+        #region Public-Members
+
+        /// <summary>
+        /// Client metadata.
+        /// </summary>
+        public string IpPort { get; }
+
+        #endregion
+
+        #region Private-Members
+
+        #endregion
+
+        #region Constructors-and-Factories
+
+        /// <summary>
+        /// Instantiate.
+        /// </summary>
+        /// <param name="ipPort">IP:port.</param>
+        public ClientConnectionEventArgs(string ipPort)
         {
             IpPort = ipPort;
         }
 
-        /// <summary>
-        /// The IP:port of the client.
-        /// </summary>
-        public string IpPort { get; } 
+        #endregion
+
+        #region Public-Methods
+
+        #endregion
+
+        #region Private-Methods
+
+        #endregion
     }
 }

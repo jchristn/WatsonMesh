@@ -9,14 +9,34 @@ namespace WatsonMesh
     /// </summary>
     public class ServerConnectionEventArgs : EventArgs
     {
+        #region Public-Members
+
+        /// <summary>
+        /// The peer object.
+        /// </summary>
+        public MeshPeer PeerNode { get; }
+
+        #endregion
+
+        #region Private-Members
+
+        #endregion
+
+        #region Constructors-and-Factories
+
         internal ServerConnectionEventArgs(MeshPeer peer)
         {
             PeerNode = peer;
         }
 
-        /// <summary>
-        /// The peer object.
-        /// </summary>
-        public MeshPeer PeerNode { get; } 
+        #endregion
+
+        #region Public-Methods
+
+        #endregion
+
+        #region Private-Methods
+
+        #endregion
     }
 }

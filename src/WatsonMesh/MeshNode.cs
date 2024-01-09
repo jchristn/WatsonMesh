@@ -15,7 +15,7 @@ using WatsonTcp;
 namespace WatsonMesh
 {
     /// <summary>
-    /// Watson mesh networking library.
+    /// Watson mesh node.
     /// </summary>
     public class MeshNode
     {
@@ -68,6 +68,28 @@ namespace WatsonMesh
         /// </summary>
         public Action<string> Logger = null;
 
+        /// <summary>
+        /// Serializer.
+        /// </summary>
+        public ISerializationHelper Serializer
+        {
+            get
+            {
+                return _Serializer;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    _Serializer = new DefaultSerializationHelper();
+                }
+                else
+                {
+                    _Serializer = value;
+                }
+            }
+        }
+
         #endregion
 
         #region Private-Members
@@ -80,6 +102,7 @@ namespace WatsonMesh
         private string _PfxCertificateFile = null;
         private string _PfxCertificatePass = null;
         private MeshServer _Server = null;
+        private ISerializationHelper _Serializer = new DefaultSerializationHelper();
 
         private readonly object _PeerLock = new object();
         private List<MeshPeer> _Peers = new List<MeshPeer>();
@@ -193,6 +216,8 @@ namespace WatsonMesh
             _Ip = ip;
             _Port = port;
             _IpPort = _Ip + ":" + _Port;
+            _PfxCertificateFile = pfxCertFile;
+            _PfxCertificatePass = pfxCertPass;
             _Ssl = true;
 
             List<string> localIpAddresses = GetLocalIpAddresses();
@@ -268,7 +293,7 @@ namespace WatsonMesh
                 if (exists) return;
                 else
                 {
-                    MeshClient currClient = new MeshClient(_Settings, peer); 
+                    MeshClient currClient = new MeshClient(_Settings, peer, _Serializer); 
                     currClient.ServerConnected += MeshClientServerConnected;
                     currClient.ServerDisconnected += MeshClientServerDisconnected;
                     // currClient.MessageReceived += MeshClientStreamReceived;
@@ -932,7 +957,7 @@ namespace WatsonMesh
                     {
                         SyncResponse syncResponse = SyncMessageReceived(payloadArgs);
                         syncResponse.DataStream.Seek(0, SeekOrigin.Begin); 
-                        Message responseMsg = new Message(_IpPort, currPeer.IpPort, currMsg.TimeoutMs, false, false, true, currMsg.Type, currMsg.Metadata, syncResponse.ContentLength, syncResponse.DataStream);
+                        Message responseMsg = new Message(_Serializer, _IpPort, currPeer.IpPort, currMsg.TimeoutMs, false, false, true, currMsg.Type, currMsg.Metadata, syncResponse.ContentLength, syncResponse.DataStream);
                         responseMsg.Id = currMsg.Id;  
                         SendSyncResponseInternal(currClient, responseMsg);
                     }
@@ -951,7 +976,7 @@ namespace WatsonMesh
             }
             catch (Exception e)
             {
-                Logger?.Invoke("[MeshNode] StreamReceived exception: " + Environment.NewLine + Common.SerializeJson(e, true));
+                Logger?.Invoke("[MeshNode] StreamReceived exception: " + Environment.NewLine + _Serializer.SerializeJson(e, true));
             } 
         }
 
@@ -963,7 +988,7 @@ namespace WatsonMesh
         {
             if (client == null) throw new ArgumentNullException(nameof(client));
 
-            Message msg = new Message(_IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, contentLength, stream);
+            Message msg = new Message(_Serializer, _IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, contentLength, stream);
             byte[] headerBytes = msg.ToHeaderBytes();
             long totalLen = headerBytes.Length;
 
@@ -998,7 +1023,7 @@ namespace WatsonMesh
         {
             if (client == null) throw new ArgumentNullException(nameof(client));
 
-            Message msg = new Message(_IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, contentLength, stream);
+            Message msg = new Message(_Serializer, _IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, contentLength, stream);
             byte[] headerBytes = msg.ToHeaderBytes();  
             long totalLen = headerBytes.Length;
 
@@ -1035,7 +1060,7 @@ namespace WatsonMesh
          
         private bool BroadcastInternal(MessageType msgType, Dictionary<object, object> metadata, long contentLength, Stream stream)
         {
-            Message msg = new Message(_IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream);
+            Message msg = new Message(_Serializer, _IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream);
             byte[] headerBytes = msg.ToHeaderBytes();
             long totalLen = headerBytes.Length;
 
@@ -1081,7 +1106,7 @@ namespace WatsonMesh
          
         private async Task<bool> BroadcastInternalAsync(MessageType msgType, Dictionary<object, object> metadata, long contentLength, Stream stream)
         { 
-            Message msg = new Message(_IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream); 
+            Message msg = new Message(_Serializer, _IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream); 
             byte[] headerBytes = msg.ToHeaderBytes();
             long totalLen = headerBytes.Length;
 
@@ -1138,7 +1163,7 @@ namespace WatsonMesh
          
         private SyncResponse SendAndWaitInternal(MeshClient client, MessageType msgType, int timeoutMs, Dictionary<object, object> metadata, long contentLength, Stream stream)
         { 
-            Message msg = new Message(_IpPort, client.PeerNode.IpPort, timeoutMs, false, true, false, msgType, metadata, contentLength, stream);
+            Message msg = new Message(_Serializer, _IpPort, client.PeerNode.IpPort, timeoutMs, false, true, false, msgType, metadata, contentLength, stream);
             byte[] headers = msg.ToHeaderBytes();
 
             try

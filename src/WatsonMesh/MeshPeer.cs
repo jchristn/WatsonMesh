@@ -14,7 +14,12 @@ namespace WatsonMesh
     public class MeshPeer
     {
         #region Public-Members
-         
+
+        /// <summary>
+        /// GUID.
+        /// </summary>
+        public Guid GUID { get; set; } = Guid.NewGuid();
+
         /// <summary>
         /// IP address of the peer.
         /// </summary>

@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;netcoreapp3.1;net461;net5.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net462;net48;net6.0;net7.0;net8.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>4.0.0.2</Version>
+    <Version>4.0.1</Version>
     <Authors>Joel Christner</Authors>
     <Description>A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.  Does not support NAT.</Description>
-    <Copyright>(c)2021 Joel Christner</Copyright>
+    <Copyright>(c)2024 Joel Christner</Copyright>
     <PackageProjectUrl>https://github.com/jchristn/WatsonMesh</PackageProjectUrl>
     <RepositoryUrl>https://github.com/jchristn/WatsonMesh</RepositoryUrl>
     <RepositoryType>Github</RepositoryType>
@@ -31,8 +31,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="WatsonTcp" Version="4.8.14.2" />
+    <Compile Remove="Classes\**" />
+    <EmbeddedResource Remove="Classes\**" />
+    <None Remove="Classes\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="LICENSE.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.1" />
+    <PackageReference Include="WatsonTcp" Version="5.1.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,7 +58,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Classes\" />
     <Folder Include="Assets\" />
   </ItemGroup>
 
@@ -57,6 +66,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Assets\watson.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="WatsonMesh.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
