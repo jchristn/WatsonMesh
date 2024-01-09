@@ -193,6 +193,8 @@ namespace WatsonMesh
             _Ip = ip;
             _Port = port;
             _IpPort = _Ip + ":" + _Port;
+            _PfxCertificateFile = pfxCertFile;
+            _PfxCertificatePass = pfxCertPass;
             _Ssl = true;
 
             List<string> localIpAddresses = GetLocalIpAddresses();
