@@ -8,23 +8,64 @@
     /// <summary>
     /// Message object, exchanged between peers in the mesh network.
     /// </summary>
-    internal class Message
+    public class MeshMessage
     {
-        #region Internal-Members
-         
-        internal string Id { get; set; } 
-        internal bool IsBroadcast { get; set; }
-        internal bool SyncRequest { get; set; } 
-        internal bool SyncResponse { get; set; } 
-        internal int TimeoutMs { get; set; } 
-        internal string SourceIpPort { get; set; } 
+        #region Public-Members
 
-        internal Guid SourceGuid { get; set; }
-        internal string DestinationIpPort { get; set; } 
+        /// <summary>
+        /// ID.
+        /// </summary>
+        public string Id { get; set; } = null;
 
-        internal Guid DestinationGuid { get; set; }
-        internal MessageTypeEnum Type { get; set; } 
-        internal Dictionary<string, object> Metadata 
+        /// <summary>
+        /// Flag to indicate if the message is a broadcast.
+        /// </summary>
+        public bool IsBroadcast { get; set; } = false;
+
+        /// <summary>
+        /// Flag to indicate if the message is a synchronous request.
+        /// </summary>
+        public bool SyncRequest { get; set; } = false;
+
+        /// <summary>
+        /// Flag to indicate if the message is a synchronous response.
+        /// </summary>
+        public bool SyncResponse { get; set; } = false;
+
+        /// <summary>
+        /// Timeout in ms.
+        /// </summary>
+        public int TimeoutMs { get; set; } = 0;
+
+        /// <summary>
+        /// Source IP:port.
+        /// </summary>
+        public string SourceIpPort { get; set; } = null;
+
+        /// <summary>
+        /// Source GUID.
+        /// </summary>
+        public Guid SourceGuid { get; set; } = default(Guid);
+
+        /// <summary>
+        /// Destination IP:port.
+        /// </summary>
+        public string DestinationIpPort { get; set; } = null;
+
+        /// <summary>
+        /// Destination GUID.
+        /// </summary>
+        public Guid DestinationGuid { get; set; } = default(Guid);
+
+        /// <summary>
+        /// Message type.
+        /// </summary>
+        public MessageTypeEnum Type { get; set; }
+
+        /// <summary>
+        /// User-specified metadata.
+        /// </summary>
+        public Dictionary<string, object> Metadata 
         { 
             get
             {
@@ -36,10 +77,16 @@
                 else _Metadata = value;
             }
         }
-         
-        internal byte[] Data { get; set; } = null;
 
-        internal Dictionary<string, object> Headers
+        /// <summary>
+        /// Message data.
+        /// </summary>
+        public byte[] Data { get; set; } = null;
+
+        /// <summary>
+        /// Headers.
+        /// </summary>
+        public Dictionary<string, object> Headers
         {
             get
             {
@@ -68,7 +115,19 @@
 
         #region Constructors-and-Factories
 
-        internal Message(
+        /// <summary>
+        /// Instantiate.
+        /// </summary>
+        /// <param name="sourceIpPort">Source IP:port.</param>
+        /// <param name="destIpPort">Destination IP:port.</param>
+        /// <param name="timeoutMs">Timeout in ms.</param>
+        /// <param name="isBroadcast">Flag to indicate if message is broadcast.</param>
+        /// <param name="syncRequest">Flag to indicate if message is a synchronous request.</param>
+        /// <param name="syncResponse">Flag to indicate if message is a synchronous response.</param>
+        /// <param name="msgType">Message type.</param>
+        /// <param name="metadata">Metadata.</param>
+        /// <param name="data">Data.</param>
+        public MeshMessage(
             string sourceIpPort, 
             string destIpPort, 
             int? timeoutMs, 
@@ -103,7 +162,11 @@
             Data = data;
         }
 
-        internal Message(MeshMessageReceivedEventArgs args)
+        /// <summary>
+        /// Instantiate.
+        /// </summary>
+        /// <param name="args">Event arguments.</param>
+        public MeshMessage(MeshMessageReceivedEventArgs args)
         {
             if (args == null) throw new ArgumentNullException(nameof(args));
 
@@ -163,26 +226,8 @@
 
         #endregion
 
-        #region Internal-Methods
+        #region Public-Methods
 
-        internal byte[] ToHeaderBytes()
-        { 
-            string header = "";
-
-            if (!String.IsNullOrEmpty(Id)) header += "Id: " + Id + Environment.NewLine;
-            header += "IsBroadcast: " + IsBroadcast + Environment.NewLine;
-            header += "SyncRequest: " + SyncRequest + Environment.NewLine;
-            header += "SyncResponse: " + SyncResponse + Environment.NewLine;
-            header += "TimeoutMs: " + TimeoutMs.ToString() + Environment.NewLine;
-            header += "SourceIpPort: " + SourceIpPort + Environment.NewLine;
-            header += "DestinationIpPort: " + DestinationIpPort + Environment.NewLine;
-            header += "Type: " + Type.ToString() + Environment.NewLine;
-            header += "Metadata: " + SerializationHelper.SerializeJson(Metadata, false) + Environment.NewLine;
-            header += Environment.NewLine;
-
-            return Encoding.UTF8.GetBytes(header); 
-        }
-         
         #endregion
 
         #region Private-Methods

@@ -172,7 +172,7 @@
             }
         }
 
-        internal MeshMessageReceivedEventArgs(Message msg)
+        internal MeshMessageReceivedEventArgs(MeshMessage msg)
         {
             Id = msg.Id;
             SyncRequest = msg.SyncRequest;

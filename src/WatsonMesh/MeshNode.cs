@@ -473,7 +473,7 @@
                     if (SyncMessageReceived != null)
                     {
                         SyncResponse syncResponse = SyncMessageReceived(args).Result;
-                        Message responseMsg = new Message(_IpPort, currPeer.IpPort, args.TimeoutMs, false, false, true, args.Type, args.Metadata, syncResponse.Data);
+                        MeshMessage responseMsg = new MeshMessage(_IpPort, currPeer.IpPort, args.TimeoutMs, false, false, true, args.Type, args.Metadata, syncResponse.Data);
                         responseMsg.Id = args.Id;  
                         SendSyncResponseInternal(currClient, responseMsg).Wait();
                     }
@@ -485,7 +485,7 @@
                 else if (args.SyncResponse)
                 {
                     // add to sync responses
-                    PendingResponse pendingResp = new PendingResponse(DateTime.Now.AddMilliseconds(args.TimeoutMs), new Message(args));
+                    PendingResponse pendingResp = new PendingResponse(DateTime.Now.AddMilliseconds(args.TimeoutMs), new MeshMessage(args));
                     _PendingResponses.TryAdd(args.Id, pendingResp); 
                 }
                 else
@@ -508,7 +508,7 @@
             if (client == null) throw new ArgumentNullException(nameof(client));
             if (data == null) data = Array.Empty<byte>();
 
-            Message msg = new Message(_IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, data);
+            MeshMessage msg = new MeshMessage(_IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, data);
             metadata = AppendHeaders(metadata, msg.Headers);
 
             return await client.Send(data, metadata, token).ConfigureAwait(false);
@@ -517,7 +517,7 @@
         private async Task<bool> BroadcastInternal(MessageTypeEnum msgType, byte[] data, Dictionary<string, object> metadata, CancellationToken token = default)
         {
             if (data == null) data = Array.Empty<byte>();
-            Message msg = new Message(_IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, data);
+            MeshMessage msg = new MeshMessage(_IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, data);
             metadata = AppendHeaders(metadata, msg.Headers);
 
             bool success = true;
@@ -546,7 +546,7 @@
         private async Task<SyncResponse> SendAndWaitInternal(MeshClient client, MessageTypeEnum msgType, int timeoutMs, byte[] data, Dictionary<string, object> metadata, CancellationToken token = default)
         {
             if (data == null) data = Array.Empty<byte>();
-            Message msg = new Message(_IpPort, client.PeerNode.IpPort, timeoutMs, false, true, false, msgType, metadata, data);
+            MeshMessage msg = new MeshMessage(_IpPort, client.PeerNode.IpPort, timeoutMs, false, true, false, msgType, metadata, data);
             metadata = AppendHeaders(metadata, msg.Headers);
 
             try
@@ -578,11 +578,11 @@
             }
         }
 
-        private async Task<bool> SendSyncResponseInternal(MeshClient client, Message msg, CancellationToken token = default)
+        private async Task<bool> SendSyncResponseInternal(MeshClient client, MeshMessage msg, CancellationToken token = default)
         {
             if (msg.Data != null)
             {
-                Dictionary<string, object> metadata = AppendHeaders(new Dictionary<string, object>(), msg.Metadata);
+                Dictionary<string, object> metadata = AppendHeaders(new Dictionary<string, object>(), msg.Headers);
                 return await client.Send(msg.Data, metadata, token).ConfigureAwait(false);
             }
             else
@@ -609,7 +609,7 @@
                         return failed;
                     }
 
-                    Message respMsg = pendingResp.ResponseMessage;
+                    MeshMessage respMsg = pendingResp.ResponseMessage;
                     DateTime expiration = pendingResp.Expiration;
 
                     if (DateTime.Now > expiration)

@@ -29,7 +29,7 @@ namespace TestNetCore
             }
             else
             {
-                _IpPort = Inputty.GetString("Local IP:port:", "127.0.0.1:8000", false);
+                _IpPort = Inputty.GetString("Local IP:port :", "127.0.0.1:8000", false);
                 ParseIpPort(_IpPort, out _Ip, out _Port);
             }
 
@@ -39,7 +39,8 @@ namespace TestNetCore
             _Settings.MutuallyAuthenticate = false;
             _Settings.PresharedKey = null; 
             _Settings.StreamBufferSize = 65536;
-            _Settings.ReconnectIntervalMs = 1000; 
+            _Settings.ReconnectIntervalMs = 1000;
+            _Settings.Guid = _Guid;
 
             _Mesh = new MeshNode(new MeshSettings(), _Ip, _Port);
             _Mesh.PeerConnected += PeerConnected;
@@ -134,7 +135,7 @@ namespace TestNetCore
                         break;
 
                     case "nodehealth":
-                        Console.WriteLine(Inputty.GetGuid("GUID:", default(Guid)));
+                        Console.WriteLine(_Mesh.IsPeerConnected(Inputty.GetGuid("GUID:", default(Guid))));
                         break;
                 }
             }
@@ -195,9 +196,7 @@ namespace TestNetCore
         static void Send()
         {
             string userInput = Inputty.GetString("Data:", "some data", false);
-            if (_Mesh.Send(
-                Inputty.GetGuid("GUID:", default(Guid)),
-                userInput).Result)
+            if (_Mesh.Send(Inputty.GetGuid("GUID:", default(Guid)), userInput).Result)
             {
                 Console.WriteLine("Success"); 
             }
@@ -226,10 +225,10 @@ namespace TestNetCore
 
         static void SendSync()
         {
-            string userInput = Inputty.GetString("Data:", "some data", false);
+            string userInput = Inputty.GetString("Data       :", "some data", false);
             SyncResponse resp = _Mesh.SendAndWait(
-                Inputty.GetGuid   ("GUID      :", default(Guid)),
-                Inputty.GetInteger("Timeout ms:", 15000, true, false),
+                Inputty.GetGuid                 ("GUID       :", default(Guid)),
+                Inputty.GetInteger              ("Timeout ms :", 15000, true, false),
                 userInput).Result;
 
             if (resp != null)
@@ -256,10 +255,10 @@ namespace TestNetCore
             md.Add("Key1", "Val1");
             md.Add("Key2", "Val2");
 
-            string userInput = Inputty.GetString("Data:", "some data", false);
+            string userInput = Inputty.GetString("Data       :", "some data", false);
             SyncResponse resp = _Mesh.SendAndWait(
-                Inputty.GetGuid   ("GUID      :", default(Guid)),
-                Inputty.GetInteger("Timeout ms:", 15000, true, false),
+                Inputty.GetGuid                 ("GUID       :", default(Guid)),
+                Inputty.GetInteger              ("Timeout ms :", 15000, true, false),
                 userInput, md).Result;
 
             if (resp != null)

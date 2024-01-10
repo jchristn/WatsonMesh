@@ -7,7 +7,7 @@
         #region Internal-Members
          
         internal DateTime Expiration;
-        internal Message ResponseMessage;
+        internal MeshMessage ResponseMessage;
 
         #endregion
 
@@ -17,7 +17,7 @@
 
         #region Constructors-and-Factories
 
-        internal PendingResponse(DateTime expiration, Message msg)
+        internal PendingResponse(DateTime expiration, MeshMessage msg)
         {
             Expiration = expiration;
             ResponseMessage = msg; 

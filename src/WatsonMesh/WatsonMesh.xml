@@ -62,6 +62,96 @@
             Tear down the client and dispose of background workers.
             </summary>
         </member>
+        <member name="T:WatsonMesh.MeshMessage">
+            <summary>
+            Message object, exchanged between peers in the mesh network.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.Id">
+            <summary>
+            ID.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.IsBroadcast">
+            <summary>
+            Flag to indicate if the message is a broadcast.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.SyncRequest">
+            <summary>
+            Flag to indicate if the message is a synchronous request.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.SyncResponse">
+            <summary>
+            Flag to indicate if the message is a synchronous response.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.TimeoutMs">
+            <summary>
+            Timeout in ms.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.SourceIpPort">
+            <summary>
+            Source IP:port.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.SourceGuid">
+            <summary>
+            Source GUID.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.DestinationIpPort">
+            <summary>
+            Destination IP:port.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.DestinationGuid">
+            <summary>
+            Destination GUID.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.Type">
+            <summary>
+            Message type.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.Metadata">
+            <summary>
+            User-specified metadata.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.Data">
+            <summary>
+            Message data.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessage.Headers">
+            <summary>
+            Headers.
+            </summary>
+        </member>
+        <member name="M:WatsonMesh.MeshMessage.#ctor(System.String,System.String,System.Nullable{System.Int32},System.Boolean,System.Boolean,System.Boolean,WatsonMesh.MessageTypeEnum,System.Collections.Generic.Dictionary{System.String,System.Object},System.Byte[])">
+            <summary>
+            Instantiate.
+            </summary>
+            <param name="sourceIpPort">Source IP:port.</param>
+            <param name="destIpPort">Destination IP:port.</param>
+            <param name="timeoutMs">Timeout in ms.</param>
+            <param name="isBroadcast">Flag to indicate if message is broadcast.</param>
+            <param name="syncRequest">Flag to indicate if message is a synchronous request.</param>
+            <param name="syncResponse">Flag to indicate if message is a synchronous response.</param>
+            <param name="msgType">Message type.</param>
+            <param name="metadata">Metadata.</param>
+            <param name="data">Data.</param>
+        </member>
+        <member name="M:WatsonMesh.MeshMessage.#ctor(WatsonMesh.MeshMessageReceivedEventArgs)">
+            <summary>
+            Instantiate.
+            </summary>
+            <param name="args">Event arguments.</param>
+        </member>
         <member name="T:WatsonMesh.MeshMessageReceivedEventArgs">
             <summary>
             Event arguments passed when a message is received.
@@ -399,11 +489,6 @@
         <member name="M:WatsonMesh.MeshSettings.#ctor">
             <summary>
             Instantiate the object.
-            </summary>
-        </member>
-        <member name="T:WatsonMesh.Message">
-            <summary>
-            Message object, exchanged between peers in the mesh network.
             </summary>
         </member>
         <member name="T:WatsonMesh.MessageTypeEnum">

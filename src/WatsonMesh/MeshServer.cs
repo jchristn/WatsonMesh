@@ -120,6 +120,7 @@
             _TcpServer.Settings.MutuallyAuthenticate = _Settings.MutuallyAuthenticate;
             _TcpServer.Settings.PresharedKey = _Settings.PresharedKey;
             _TcpServer.Settings.StreamBufferSize = _Settings.StreamBufferSize;
+            _TcpServer.Settings.Guid = _Settings.Guid;
 
             _TcpServer.Events.ClientConnected += MeshServerClientConnected;
             _TcpServer.Events.ClientDisconnected += MeshServerClientDisconnected;
@@ -157,13 +158,13 @@
 
         private void MeshServerClientConnected(object sender, ConnectionEventArgs args)
         {
-            Logger?.Invoke(_Header + "client " + args.Client.Guid + " " + args.Client.IpPort + " connected");
+            Logger?.Invoke(_Header + "client " + args.Client.IpPort + " connected");
             ClientConnected?.Invoke(this, new ClientConnectionEventArgs(args.Client.Guid, args.Client.IpPort));
         }
 
         private void MeshServerClientDisconnected(object sender, DisconnectionEventArgs args)
         {
-            Logger?.Invoke(_Header + "client " + args.Client.Guid + " " + args.Client.IpPort + " disconnected");
+            Logger?.Invoke(_Header + "client " + args.Client.IpPort + " disconnected");
             ClientDisconnected?.Invoke(this, new ClientConnectionEventArgs(args.Client.Guid, args.Client.IpPort));
         }
 
