@@ -198,7 +198,7 @@
             </summary>
             <returns>List of Peer.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.Send(System.Guid,System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
+        <member name="M:WatsonMesh.MeshNode.Send(System.Guid,System.String,System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send string data to a peer asynchronously.
             </summary>
@@ -208,7 +208,7 @@
             <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.Send(System.Guid,System.Byte[],System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
+        <member name="M:WatsonMesh.MeshNode.Send(System.Guid,System.Byte[],System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send byte data to a peer asynchronously.
             </summary>
@@ -218,7 +218,7 @@
             <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.Send(System.Guid,System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
+        <member name="M:WatsonMesh.MeshNode.Send(System.Guid,System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send byte data to a peer asynchronously using a stream.
             </summary>
@@ -229,7 +229,7 @@
             <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.Guid,System.Int32,System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
+        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.Guid,System.Int32,System.String,System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send string data to a peer and wait for a response for the specified timeout duration.
             </summary>
@@ -240,7 +240,7 @@
             <param name="token">Cancellation token.</param>
             <returns>SyncResponse.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.Guid,System.Int32,System.Byte[],System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
+        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.Guid,System.Int32,System.Byte[],System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send byte data to a peer and wait for a response for the specified timeout duration.
             </summary>
@@ -251,7 +251,7 @@
             <param name="token">Cancellation token.</param>
             <returns>SyncResponse.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.Guid,System.Int32,System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
+        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.Guid,System.Int32,System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send stream data to a peer and wait for a response for the specified timeout duration.
             </summary>
@@ -263,7 +263,7 @@
             <param name="token">Cancellation token.</param>
             <returns>SyncResponse.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.Broadcast(System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
+        <member name="M:WatsonMesh.MeshNode.Broadcast(System.String,System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
             <summary>
             Broadcast string data to all nodes asynchronously.
             </summary>
@@ -272,7 +272,7 @@
             <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Byte[],System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
+        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Byte[],System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
             <summary>
             Broadcast byte data to all nodes asynchronously.
             </summary>
@@ -281,7 +281,7 @@
             <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
+        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
             <summary>
             Broadcast stream data to all nodes asynchronously.
             </summary>
@@ -410,11 +410,6 @@
         <member name="P:WatsonMesh.MessageReceivedEventArgs.Id">
             <summary>
             Unique ID for the message. 
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.IsBroadcast">
-            <summary>
-            Indicates if the message is a broadcast.
             </summary>
         </member>
         <member name="P:WatsonMesh.MessageReceivedEventArgs.SyncRequest">

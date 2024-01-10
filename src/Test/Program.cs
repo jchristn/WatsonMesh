@@ -209,7 +209,7 @@ namespace TestNetCore
 
         static void SendMetadata()
         {
-            Dictionary<object, object> md = new Dictionary<object, object>();
+            Dictionary<string, object> md = new Dictionary<string, object>();
             md.Add("Key1", "Val1");
             md.Add("Key2", "Val2");
 
@@ -266,7 +266,7 @@ namespace TestNetCore
 
         static void SendSyncMetadata()
         {
-            Dictionary<object, object> md = new Dictionary<object, object>();
+            Dictionary<string, object> md = new Dictionary<string, object>();
             md.Add("Key1", "Val1");
             md.Add("Key2", "Val2");
 
@@ -333,12 +333,11 @@ namespace TestNetCore
          
         static void MessageReceived(object sender, MessageReceivedEventArgs args) 
         {
-            if (args.IsBroadcast) Console.Write("[bcast] ");
-            Console.WriteLine("[async] " + args.SourceIpPort + " " + args.ContentLength + " bytes: " + Encoding.UTF8.GetString(args.Data));
+            Console.WriteLine(args.SourceIpPort + " " + args.ContentLength + " bytes: " + Encoding.UTF8.GetString(args.Data));
             if (args.Metadata != null && args.Metadata.Count > 0)
             {
                 Console.WriteLine("Metadata:");
-                foreach (KeyValuePair<object, object> curr in args.Metadata)
+                foreach (KeyValuePair<string, object> curr in args.Metadata)
                 {
                     Console.WriteLine("  " + curr.Key.ToString() + ": " + curr.Value.ToString());
                 }
@@ -353,7 +352,7 @@ namespace TestNetCore
             if (args.Metadata != null && args.Metadata.Count > 0)
             {
                 Console.WriteLine("Metadata:");
-                foreach (KeyValuePair<object, object> curr in args.Metadata)
+                foreach (KeyValuePair<string, object> curr in args.Metadata)
                 {
                     Console.WriteLine("  " + curr.Key.ToString() + ": " + curr.Value.ToString());
                 }

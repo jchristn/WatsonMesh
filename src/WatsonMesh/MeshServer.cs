@@ -14,7 +14,7 @@
 
         internal event EventHandler<ClientConnectionEventArgs> ClientConnected;
         internal event EventHandler<ClientConnectionEventArgs> ClientDisconnected;
-        internal event EventHandler<StreamReceivedEventArgs> MessageReceived;
+        internal event EventHandler<MessageReceivedEventArgs> MessageReceived;
         internal Action<string> Logger = null;
 
         #endregion
@@ -169,7 +169,10 @@
         private void MeshServerStreamReceived(object sender, StreamReceivedEventArgs args)
         {
             Logger?.Invoke(_Header + "message from client " + args.Client.Guid + " " + args.Client.IpPort + ": " + args.ContentLength + " bytes");
-            MessageReceived?.Invoke(this, args);
+
+            MessageReceivedEventArgs msg = new MessageReceivedEventArgs(args, _IpPort, _Settings.Guid);
+
+            MessageReceived?.Invoke(this, msg);
         }
 
         private List<string> GetLocalIpAddresses()

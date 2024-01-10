@@ -3,6 +3,8 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Runtime;
+    using WatsonTcp;
 
     /// <summary>
     /// Event arguments passed when a message is received.
@@ -15,11 +17,6 @@
         /// Unique ID for the message. 
         /// </summary>
         public string Id { get; set; } = null;
-
-        /// <summary>
-        /// Indicates if the message is a broadcast.
-        /// </summary>
-        public bool IsBroadcast { get; set; } = false;
 
         /// <summary>
         /// Indicates if the message is a synchronous message request.
@@ -64,7 +61,7 @@
         /// <summary>
         /// Dictionary containing metadata to include with the message.
         /// </summary>
-        public Dictionary<object, object> Metadata
+        public Dictionary<string, object> Metadata
         {
             get
             {
@@ -72,7 +69,7 @@
             }
             set
             {
-                if (value == null) _Metadata = new Dictionary<object, object>();
+                if (value == null) _Metadata = new Dictionary<string, object>();
                 else _Metadata = value;
             }
         }
@@ -106,17 +103,29 @@
 
         #region Private-Members
 
-        private Dictionary<object, object> _Metadata = new Dictionary<object, object>();
+        private Dictionary<string, object> _Metadata = new Dictionary<string, object>();
         private byte[] _Data = null;
 
         #endregion
 
         #region Constructors-and-Factories
 
+        internal MessageReceivedEventArgs(StreamReceivedEventArgs args, string localIpPort, Guid localGuid)
+        {
+            if (args == null) throw new ArgumentNullException(nameof(args));
+
+            SourceIpPort = args.Client.IpPort;
+            SourceGuid = args.Client.Guid;
+            DestinationIpPort = localIpPort;
+            DestinationGuid = localGuid;
+            Metadata = args.Metadata;
+            ContentLength = args.ContentLength;
+            DataStream = args.DataStream;
+        }
+
         internal MessageReceivedEventArgs(Message msg)
         {
             Id = msg.Id;
-            IsBroadcast = msg.IsBroadcast;
             SyncRequest = msg.SyncRequest;
             SyncResponse = msg.SyncResponse;
             TimeoutMs = msg.TimeoutMs;
@@ -129,7 +138,7 @@
             ContentLength = msg.ContentLength;
             DataStream = msg.DataStream;
         }
-
+         
         #endregion
 
         #region Public-Methods

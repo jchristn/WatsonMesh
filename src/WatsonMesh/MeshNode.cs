@@ -329,7 +329,7 @@
         /// <param name="metadata">Metadata dictionary.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> Send(Guid guid, string data, Dictionary<object, object> metadata = null, CancellationToken token = default)
+        public async Task<bool> Send(Guid guid, string data, Dictionary<string, object> metadata = null, CancellationToken token = default)
         {
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
             return await Send(guid, Encoding.UTF8.GetBytes(data), metadata, token).ConfigureAwait(false);
@@ -343,7 +343,7 @@
         /// <param name="metadata">Metadata dictionary.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> Send(Guid guid, byte[] data, Dictionary<object, object> metadata = null, CancellationToken token = default)
+        public async Task<bool> Send(Guid guid, byte[] data, Dictionary<string, object> metadata = null, CancellationToken token = default)
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
             MemoryStream stream = new MemoryStream();
@@ -362,7 +362,7 @@
         /// <param name="metadata">Metadata dictionary.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> Send(Guid guid, long contentLength, Stream stream, Dictionary<object, object> metadata = null, CancellationToken token = default)
+        public async Task<bool> Send(Guid guid, long contentLength, Stream stream, Dictionary<string, object> metadata = null, CancellationToken token = default)
         {
             if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
             if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -386,7 +386,7 @@
         /// <param name="metadata">Metadata dictionary.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>SyncResponse.</returns>
-        public async Task<SyncResponse> SendAndWait(Guid guid, int timeoutMs, string data, Dictionary<object, object> metadata = null, CancellationToken token = default)
+        public async Task<SyncResponse> SendAndWait(Guid guid, int timeoutMs, string data, Dictionary<string, object> metadata = null, CancellationToken token = default)
         {
             if (timeoutMs < 1) throw new ArgumentException("Timeout must be greater than zero.");
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
@@ -402,7 +402,7 @@
         /// <param name="metadata">Metadata dictionary.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>SyncResponse.</returns>
-        public async Task<SyncResponse> SendAndWait(Guid guid, int timeoutMs, byte[] data, Dictionary<object, object> metadata = null, CancellationToken token = default)
+        public async Task<SyncResponse> SendAndWait(Guid guid, int timeoutMs, byte[] data, Dictionary<string, object> metadata = null, CancellationToken token = default)
         {
             if (timeoutMs < 1) throw new ArgumentException("Timeout must be greater than zero.");
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
@@ -423,7 +423,7 @@
         /// <param name="metadata">Metadata to include with the message.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>SyncResponse.</returns>
-        public async Task<SyncResponse> SendAndWait(Guid guid, int timeoutMs, long contentLength, Stream stream, Dictionary<object, object> metadata = null, CancellationToken token = default)
+        public async Task<SyncResponse> SendAndWait(Guid guid, int timeoutMs, long contentLength, Stream stream, Dictionary<string, object> metadata = null, CancellationToken token = default)
         {
             if (timeoutMs < 1) throw new ArgumentException("Timeout must be greater than zero.");
             if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
@@ -451,7 +451,7 @@
         /// <param name="metadata">Metadata to include with the message.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> Broadcast(string data, Dictionary<object, object> metadata = null, CancellationToken token = default)
+        public async Task<bool> Broadcast(string data, Dictionary<string, object> metadata = null, CancellationToken token = default)
         {
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
             return await Broadcast(Encoding.UTF8.GetBytes(data), metadata, token).ConfigureAwait(false);
@@ -464,7 +464,7 @@
         /// <param name="metadata">Metadata to include with the message.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> Broadcast(byte[] data, Dictionary<object, object> metadata = null, CancellationToken token = default)
+        public async Task<bool> Broadcast(byte[] data, Dictionary<string, object> metadata = null, CancellationToken token = default)
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data)); 
             MemoryStream stream = new MemoryStream(data);
@@ -481,7 +481,7 @@
         /// <param name="metadata">Metadata to include with the message.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> Broadcast(long contentLength, Stream stream, Dictionary<object, object> metadata = null, CancellationToken token = default)
+        public async Task<bool> Broadcast(long contentLength, Stream stream, Dictionary<string, object> metadata = null, CancellationToken token = default)
         {
             if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
             if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -538,7 +538,7 @@
         {  
         }
          
-        private async void MeshServerStreamReceived(object sender, StreamReceivedEventArgs args)
+        private async void MeshServerStreamReceived(object sender, MessageReceivedEventArgs args)
         {
             try
             {
@@ -597,7 +597,7 @@
 
         #region Private-Message-Methods
          
-        private async Task<bool> SendInternal(MeshClient client, MessageTypeEnum msgType, long contentLength, Stream stream, Dictionary<object, object> metadata, CancellationToken token = default)
+        private async Task<bool> SendInternal(MeshClient client, MessageTypeEnum msgType, long contentLength, Stream stream, Dictionary<string, object> metadata, CancellationToken token = default)
         {
             if (client == null) throw new ArgumentNullException(nameof(client));
 
@@ -632,7 +632,7 @@
             return await client.SendAsync(totalLen, ms).ConfigureAwait(false);
         }
 
-        private async Task<bool> BroadcastInternal(MessageTypeEnum msgType, long contentLength, Stream stream, Dictionary<object, object> metadata, CancellationToken token = default)
+        private async Task<bool> BroadcastInternal(MessageTypeEnum msgType, long contentLength, Stream stream, Dictionary<string, object> metadata, CancellationToken token = default)
         { 
             Message msg = new Message(_Serializer, _IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream); 
             byte[] headerBytes = msg.ToHeaderBytes();
@@ -685,7 +685,7 @@
             return _SyncRequests.TryAdd(id, DateTime.Now.AddMilliseconds(timeoutMs));
         }
          
-        private async Task<SyncResponse> SendAndWaitInternal(MeshClient client, MessageTypeEnum msgType, int timeoutMs, long contentLength, Stream stream, Dictionary<object, object> metadata, CancellationToken token = default)
+        private async Task<SyncResponse> SendAndWaitInternal(MeshClient client, MessageTypeEnum msgType, int timeoutMs, long contentLength, Stream stream, Dictionary<string, object> metadata, CancellationToken token = default)
         { 
             Message msg = new Message(_Serializer, _IpPort, client.PeerNode.IpPort, timeoutMs, false, true, false, msgType, metadata, contentLength, stream);
             byte[] headers = msg.ToHeaderBytes();

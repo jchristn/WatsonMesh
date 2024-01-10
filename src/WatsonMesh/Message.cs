@@ -24,7 +24,7 @@
 
         internal Guid DestinationGuid { get; set; }
         internal MessageTypeEnum Type { get; set; } 
-        internal Dictionary<object, object> Metadata 
+        internal Dictionary<string, object> Metadata 
         { 
             get
             {
@@ -32,7 +32,7 @@
             }
             set
             {
-                if (value == null) _Metadata = new Dictionary<object, object>();
+                if (value == null) _Metadata = new Dictionary<string, object>();
                 else _Metadata = value;
             }
         }
@@ -55,7 +55,7 @@
         #region Private-Members
 
         private ISerializationHelper _Serializer = new DefaultSerializationHelper();
-        private Dictionary<object, object> _Metadata = new Dictionary<object, object>();
+        private Dictionary<string, object> _Metadata = new Dictionary<string, object>();
         private byte[] _Data = null;
 
         #endregion
@@ -76,7 +76,7 @@
             bool syncRequest, 
             bool syncResponse, 
             MessageTypeEnum msgType, 
-            Dictionary<object, object> metadata, 
+            Dictionary<string, object> metadata, 
             long contentLength, 
             Stream stream)
         {
@@ -183,7 +183,7 @@
                             Type = (MessageTypeEnum)(Enum.Parse(typeof(MessageTypeEnum), val));
                             break;
                         case "Metadata":
-                            Metadata = _Serializer.DeserializeJson<Dictionary<object, object>>(val);
+                            Metadata = _Serializer.DeserializeJson<Dictionary<string, object>>(val);
                             break;
                         case "ContentLength":
                             ContentLength = Convert.ToInt64(val);
