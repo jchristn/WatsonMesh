@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace WatsonMesh
+﻿namespace WatsonMesh
 {
+    using System;
+
     /// <summary>
     /// Event arguments passed when a client connects or disconnects.
     /// </summary>
@@ -12,9 +10,14 @@ namespace WatsonMesh
         #region Public-Members
 
         /// <summary>
+        /// Client GUID.
+        /// </summary>
+        public Guid Guid { get; set; } = default(Guid);
+
+        /// <summary>
         /// Client metadata.
         /// </summary>
-        public string IpPort { get; }
+        public string IpPort { get; set; } = null;
 
         #endregion
 
@@ -27,9 +30,11 @@ namespace WatsonMesh
         /// <summary>
         /// Instantiate.
         /// </summary>
+        /// <param name="guid">Guid.</param>
         /// <param name="ipPort">IP:port.</param>
-        public ClientConnectionEventArgs(string ipPort)
+        public ClientConnectionEventArgs(Guid guid, string ipPort)
         {
+            Guid = guid;
             IpPort = ipPort;
         }
 

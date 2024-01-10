@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace WatsonMesh
+﻿namespace WatsonMesh
 {
+    using System;
+
     /// <summary>
     /// Event arguments passed when a connection is established on the local mesh server.
     /// </summary>
@@ -14,7 +12,7 @@ namespace WatsonMesh
         /// <summary>
         /// The peer object.
         /// </summary>
-        public MeshPeer PeerNode { get; }
+        public MeshPeer PeerNode { get; set; } = null;
 
         #endregion
 

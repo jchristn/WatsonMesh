@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-
-namespace WatsonMesh
+﻿namespace WatsonMesh
 {
+    using System;
+
     internal class PendingResponse
     {
         #region Internal-Members

@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace WatsonMesh
+﻿namespace WatsonMesh
 {
+    using System;
+
     /// <summary>
     /// Settings for the mesh network.
     /// </summary>
@@ -64,6 +60,11 @@ namespace WatsonMesh
                 _StreamBufferSize = value;
             }
         }
+
+        /// <summary>
+        /// GUID for the mesh node.
+        /// </summary>
+        public Guid Guid { get; set; } = Guid.NewGuid();
 
         #endregion
 

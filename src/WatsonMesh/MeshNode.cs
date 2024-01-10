@@ -1,19 +1,18 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-using System.Timers;
-
-using WatsonTcp;
-
-namespace WatsonMesh
+﻿namespace WatsonMesh
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Net;
+    using System.Net.Sockets;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using System.Timers;
+    using WatsonTcp;
+
     /// <summary>
     /// Watson mesh node.
     /// </summary>
@@ -61,7 +60,7 @@ namespace WatsonMesh
         /// Read .ContentLength bytes from .DataStream, or, use .Data which will read the stream fully.
         /// Your function must return a SyncResponse object.
         /// </summary>
-        public Func<MessageReceivedEventArgs, SyncResponse> SyncMessageReceived;
+        public Func<MessageReceivedEventArgs, Task<SyncResponse>> SyncMessageReceived;
 
         /// <summary>
         /// Function to invoke when sending log messages.
@@ -94,6 +93,7 @@ namespace WatsonMesh
 
         #region Private-Members
 
+        private string _Header = "[MeshNode] ";
         private MeshSettings _Settings = null;
         private string _Ip = null;
         private int _Port = 0;
@@ -113,89 +113,11 @@ namespace WatsonMesh
         private ConcurrentDictionary<string, DateTime> _SyncRequests = new ConcurrentDictionary<string, DateTime>();
         private ConcurrentDictionary<string, PendingResponse> _PendingResponses = new ConcurrentDictionary<string, PendingResponse>();
 
-        private Timer _Timer = new Timer();
+        private System.Timers.Timer _Timer = new System.Timers.Timer();
 
         #endregion
 
         #region Constructors-and-Factories
-
-        /// <summary>
-        /// Instantiate the platform with no peers and without SSL using the default settings.
-        /// </summary>
-        /// <param name="ip">The IP address; either 127.0.0.1, or, an address that maps to a local network interface.</param>
-        /// <param name="port">The TCP port on which to listen.</param>
-        public MeshNode(string ip, int port)
-        {
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
-            if (port < 0) throw new ArgumentException("Port number must be zero or greater.");
-
-            _Settings = new MeshSettings();
-            _Ip = ip;
-            _Port = port;
-            _IpPort = _Ip + ":" + _Port;
-            _Ssl = false;
-
-            List<string> localIpAddresses = GetLocalIpAddresses();
-            if (_Ip.Equals("127.0.0.1"))
-            {
-                Logger?.Invoke("[MeshNode] Loopback IP address detected; only connections from local machine will be accepted");
-            }
-            else
-            {
-                if (!localIpAddresses.Contains(_Ip))
-                {
-                    Logger?.Invoke("[MeshNode] Specified IP address '" + _Ip + "' not found in local IP address list:");
-                    foreach (string curr in localIpAddresses) Logger?.Invoke("  " + curr);
-                    throw new ArgumentException("IP address must either be 127.0.0.1 or the IP address of a local network interface.");
-                }
-            }
-
-            _Timer.Elapsed += new ElapsedEventHandler(CleanupThread);
-            _Timer.Interval = 5000;
-            _Timer.Enabled = true;
-
-            Logger?.Invoke("[MeshNode] Initialized MeshServer on IP:port " + _IpPort + " without SSL");
-        }
-
-        /// <summary>
-        /// Instantiate the platform with no peers and without SSL.
-        /// </summary>
-        /// <param name="settings">Settings for the mesh network.</param> 
-        /// <param name="ip">The IP address; either 127.0.0.1, or, an address that maps to a local network interface.</param>
-        /// <param name="port">The TCP port on which to listen.</param>
-        public MeshNode(MeshSettings settings, string ip, int port)
-        {
-            if (settings == null) throw new ArgumentNullException(nameof(settings));
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
-            if (port < 0) throw new ArgumentException("Port number must be zero or greater.");
-
-            _Settings = settings;
-            _Ip = ip;
-            _Port = port;
-            _IpPort = _Ip + ":" + _Port;
-            _Ssl = false;
-
-            List<string> localIpAddresses = GetLocalIpAddresses();
-            if (_Ip.Equals("127.0.0.1"))
-            {
-                Logger?.Invoke("[MeshNode] Loopback IP address detected; only connections from local machine will be accepted");
-            }
-            else
-            {
-                if (!localIpAddresses.Contains(_Ip))
-                {
-                    Logger?.Invoke("[MeshNode] Specified IP address '" + _Ip + "' not found in local IP address list:");
-                    foreach (string curr in localIpAddresses) Logger?.Invoke("  " + curr);
-                    throw new ArgumentException("IP address must either be 127.0.0.1 or the IP address of a local network interface.");
-                }
-            }
-
-            _Timer.Elapsed += new ElapsedEventHandler(CleanupThread);
-            _Timer.Interval = 5000;
-            _Timer.Enabled = true;
-
-            Logger?.Invoke("[MeshNode] Initialized MeshServer on IP:port " + _IpPort + " without SSL");
-        }
 
         /// <summary>
         /// Instantiate the platform with no peers with SSL.  
@@ -204,9 +126,16 @@ namespace WatsonMesh
         /// <param name="settings">Settings for the mesh network.</param> 
         /// <param name="ip">The IP address; either 127.0.0.1, or, an address that maps to a local network interface.</param>
         /// <param name="port">The TCP port on which to listen.</param>
+        /// <param name="ssl">Enable or disable SSL.</param>
         /// <param name="pfxCertFile">The PFX certificate file.</param>
         /// <param name="pfxCertPass">The password to the PFX certificate file.</param>
-        public MeshNode(MeshSettings settings, string ip, int port, string pfxCertFile, string pfxCertPass)
+        public MeshNode(
+            MeshSettings settings, 
+            string ip = "127.0.0.1", 
+            int port = 8000, 
+            bool ssl = false,
+            string pfxCertFile = null, 
+            string pfxCertPass = null)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
             if (ip == null) throw new ArgumentNullException(nameof(ip));
@@ -218,18 +147,18 @@ namespace WatsonMesh
             _IpPort = _Ip + ":" + _Port;
             _PfxCertificateFile = pfxCertFile;
             _PfxCertificatePass = pfxCertPass;
-            _Ssl = true;
+            _Ssl = ssl;
 
             List<string> localIpAddresses = GetLocalIpAddresses();
             if (_Ip.Equals("127.0.0.1"))
             {
-                Logger?.Invoke("[MeshNode] Loopback IP address detected; only connections from local machine will be accepted");
+                Logger?.Invoke(_Header + "loopback IP address detected; only connections from local machine will be accepted");
             }
             else
             {
                 if (!localIpAddresses.Contains(_Ip))
                 {
-                    Logger?.Invoke("[MeshNode] Specified IP address '" + _Ip + "' not found in local IP address list:");
+                    Logger?.Invoke(_Header + "specified IP address '" + _Ip + "' not found in local IP address list:");
                     foreach (string curr in localIpAddresses) Logger?.Invoke("  " + curr);
                     throw new ArgumentException("IP address must either be 127.0.0.1 or the IP address of a local network interface.");
                 }
@@ -239,12 +168,14 @@ namespace WatsonMesh
             _Timer.Interval = 5000;
             _Timer.Enabled = true;
 
-            Logger?.Invoke("[MeshNode] Initialized MeshServer on IP:port " + _IpPort + " with SSL");
+            Logger?.Invoke(_Header + "initialized MeshServer on IP:port " + _IpPort);
         }
 
         #endregion
 
         #region Public-Methods
+
+        #region Connection
 
         /// <summary>
         /// Start the mesh network server.
@@ -262,16 +193,28 @@ namespace WatsonMesh
         /// <summary>
         /// Check if a specific remote server connection is alive.
         /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <returns>True if healthy.</returns>
-        public bool IsServerConnected(string ipPort)
+        /// <param name="guid">GUID of the peer.</param>
+        /// <returns>True if connected.</returns>
+        public bool IsPeerConnected(Guid guid)
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort)); 
-
-            MeshClient currClient = GetMeshClientByIpPort(ipPort);
+            MeshClient currClient = GetMeshClientByGuid(guid);
             if (currClient == null) return false;
             return currClient.Connected;
         }
+
+        /// <summary>
+        /// Disconnect a remote client.
+        /// </summary>
+        /// <param name="guid">GUID of the peer.</param>
+        /// <param name="token">Cancellation token.</param>
+        public async Task DisconnectClient(Guid guid, CancellationToken token = default)
+        {
+            await _Server.DisconnectClient(guid, token).ConfigureAwait(false);
+        }
+
+        #endregion
+
+        #region Peers
 
         /// <summary>
         /// Add a peer to the network.
@@ -283,13 +226,13 @@ namespace WatsonMesh
 
             lock (_PeerLock)
             {
-                bool exists = _Peers.Any(p => p.IpPort.Equals(peer.IpPort));
+                bool exists = _Peers.Any(p => p.Guid.Equals(peer.Guid));
                 if (!exists) _Peers.Add(peer);
             }
 
             lock (_ClientsLock)
             {
-                bool exists = _Clients.Any(c => c.PeerNode.IpPort.Equals(peer.IpPort));
+                bool exists = _Clients.Any(c => c.PeerNode.Guid.Equals(peer.Guid));
                 if (exists) return;
                 else
                 {
@@ -307,20 +250,18 @@ namespace WatsonMesh
         /// <summary>
         /// Remove a peer from the network.
         /// </summary>
-        /// <param name="peer">Peer.</param>
-        public void Remove(MeshPeer peer)
+        /// <param name="guid">Guid.</param>
+        public void Remove(Guid guid)
         {
-            if (peer == null) throw new ArgumentNullException(nameof(peer));
-
             lock (_PeerLock)
             {
-                bool exists = _Peers.Any(p => p.IpPort.Equals(peer.IpPort));
-                if (exists) _Peers = _Peers.Where(p => !p.IpPort.Equals(peer.IpPort)).ToList();
+                bool exists = _Peers.Any(p => p.Guid.Equals(guid));
+                if (exists) _Peers = _Peers.Where(p => !p.Guid.Equals(guid)).ToList();
             }
 
             lock (_ClientsLock)
             {
-                MeshClient currClient = _Clients.Where(c => c.PeerNode.IpPort.Equals(peer.IpPort)).FirstOrDefault();
+                MeshClient currClient = _Clients.Where(c => c.PeerNode.Guid.Equals(guid)).FirstOrDefault();
                 if (currClient != null && currClient != default(MeshClient))
                 {
                     currClient.Dispose();
@@ -348,7 +289,7 @@ namespace WatsonMesh
         /// Return a list of all Peer objects.
         /// </summary>
         /// <returns>List of Peer.</returns>
-        public List<MeshPeer> GetPeers()
+        public IEnumerable<MeshPeer> GetPeers()
         {
             lock (_PeerLock)
             {
@@ -376,458 +317,160 @@ namespace WatsonMesh
             }
         }
 
-        /// <summary>
-        /// Send string data to a peer.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Send(string ipPort, string data)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return Send(ipPort, null, Encoding.UTF8.GetBytes(data));
-        }
+        #endregion
 
-        /// <summary>
-        /// Send string data to a peer.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Send(string ipPort, Dictionary<object, object> metadata, string data)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return Send(ipPort, metadata, Encoding.UTF8.GetBytes(data));
-        }
-
-        /// <summary>
-        /// Send byte data to a peer.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Send(string ipPort, byte[] data)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-            return Send(ipPort, null, data);
-        }
-
-        /// <summary>
-        /// Send byte data to a peer.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Send(string ipPort, Dictionary<object, object> metadata, byte[] data)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-            
-            long contentLength = 0;
-            MemoryStream stream = new MemoryStream();
-            stream.Write(data, 0, data.Length);
-            contentLength = data.Length;
-
-            stream.Seek(0, SeekOrigin.Begin);
-            return Send(ipPort, metadata, contentLength, stream);
-        }
-
-        /// <summary>
-        /// Send byte data to a peer using a stream.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="contentLength">The number of bytes to read from the stream.</param>
-        /// <param name="stream">The stream containing the data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Send(string ipPort, long contentLength, Stream stream)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanRead) throw new IOException("Cannot read from supplied stream.");
-            return Send(ipPort, null, contentLength, stream);
-        }
-
-        /// <summary>
-        /// Send byte data to a peer using a stream.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="contentLength">The number of bytes to read from the stream.</param>
-        /// <param name="stream">The stream containing the data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Send(string ipPort, Dictionary<object, object> metadata, long contentLength, Stream stream)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanRead) throw new IOException("Cannot read from supplied stream.");
-
-            MeshClient currClient = GetMeshClientByIpPort(ipPort);
-            if (currClient == null || currClient == default(MeshClient)) return false;
-            return SendInternal(currClient, MessageType.Data, metadata, contentLength, stream);
-        }
+        #region Send
 
         /// <summary>
         /// Send string data to a peer asynchronously.
         /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+        /// <param name="guid">GUID of the peer.</param>
         /// <param name="data">Data.</param>
+        /// <param name="metadata">Metadata dictionary.</param>
+        /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> SendAsync(string ipPort, string data)
+        public async Task<bool> Send(Guid guid, string data, Dictionary<object, object> metadata = null, CancellationToken token = default)
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return await SendAsync(ipPort, null, Encoding.UTF8.GetBytes(data));
-        }
-
-        /// <summary>
-        /// Send string data to a peer asynchronously.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public async Task<bool> SendAsync(string ipPort, Dictionary<object, object> metadata, string data)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return await SendAsync(ipPort, metadata, Encoding.UTF8.GetBytes(data));
+            return await Send(guid, Encoding.UTF8.GetBytes(data), metadata, token).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Send byte data to a peer asynchronously.
         /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+        /// <param name="guid">GUID of the peer.</param>
         /// <param name="data">Data.</param>
+        /// <param name="metadata">Metadata dictionary.</param>
+        /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> SendAsync(string ipPort, byte[] data)
+        public async Task<bool> Send(Guid guid, byte[] data, Dictionary<object, object> metadata = null, CancellationToken token = default)
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-            return await SendAsync(ipPort, null, data);
-        }
-
-        /// <summary>
-        /// Send byte data to a peer asynchronously.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public async Task<bool> SendAsync(string ipPort, Dictionary<object, object> metadata, byte[] data)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-
-            long contentLength = 0;
             MemoryStream stream = new MemoryStream();
             stream.Write(data, 0, data.Length);
-            contentLength = data.Length; 
-
+            long contentLength = data.Length;
             stream.Seek(0, SeekOrigin.Begin);
-            return await SendAsync(ipPort, metadata, contentLength, stream);
+            return await Send(guid, contentLength, stream, metadata, token).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Send byte data to a peer asynchronously using a stream.
         /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+        /// <param name="guid">GUID of the peer.</param>
         /// <param name="contentLength">The number of bytes to read from the stream.</param>
         /// <param name="stream">The stream containing the data.</param>
+        /// <param name="metadata">Metadata dictionary.</param>
+        /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> SendAsync(string ipPort, long contentLength, Stream stream)
+        public async Task<bool> Send(Guid guid, long contentLength, Stream stream, Dictionary<object, object> metadata = null, CancellationToken token = default)
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
             if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new IOException("Cannot read from supplied stream.");
 
-            MeshClient currClient = GetMeshClientByIpPort(ipPort);
+            MeshClient currClient = GetMeshClientByGuid(guid);
             if (currClient == null || currClient == default(MeshClient)) return false;
-            return await SendInternalAsync(currClient, MessageType.Data, null, contentLength, stream);
+            return await SendInternal(currClient, MessageTypeEnum.Data, contentLength, stream, metadata, token).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Send byte data to a peer asynchronously using a stream.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="contentLength">The number of bytes to read from the stream.</param>
-        /// <param name="stream">The stream containing the data.</param>
-        /// <returns>True if successful.</returns>
-        public async Task<bool> SendAsync(string ipPort, Dictionary<object, object> metadata, long contentLength, Stream stream)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanRead) throw new IOException("Cannot read from supplied stream.");
+        #endregion
 
-            MeshClient currClient = GetMeshClientByIpPort(ipPort);
-            if (currClient == null || currClient == default(MeshClient)) return false;
-            return await SendInternalAsync(currClient, MessageType.Data, null, contentLength, stream);
-        }
+        #region SendAndWait
 
         /// <summary>
         /// Send string data to a peer and wait for a response for the specified timeout duration.
         /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+        /// <param name="guid">GUID of the peer.</param>
         /// <param name="timeoutMs">Timeout in milliseconds.</param>
         /// <param name="data">Data.</param>
+        /// <param name="metadata">Metadata dictionary.</param>
+        /// <param name="token">Cancellation token.</param>
         /// <returns>SyncResponse.</returns>
-        public SyncResponse SendAndWait(string ipPort, int timeoutMs, string data)
+        public async Task<SyncResponse> SendAndWait(Guid guid, int timeoutMs, string data, Dictionary<object, object> metadata = null, CancellationToken token = default)
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
             if (timeoutMs < 1) throw new ArgumentException("Timeout must be greater than zero.");
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return SendAndWait(ipPort, timeoutMs, null, Encoding.UTF8.GetBytes(data));
-        }
-
-        /// <summary>
-        /// Send string data to a peer and wait for a response for the specified timeout duration.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="timeoutMs">Timeout in milliseconds.</param>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="data">Data.</param>
-        /// <returns>SyncResponse.</returns>
-        public SyncResponse SendAndWait(string ipPort, int timeoutMs, Dictionary<object, object> metadata, string data)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (timeoutMs < 1) throw new ArgumentException("Timeout must be greater than zero.");
-            if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return SendAndWait(ipPort, timeoutMs, metadata, Encoding.UTF8.GetBytes(data));
+            return await SendAndWait(guid, timeoutMs, Encoding.UTF8.GetBytes(data), metadata, token).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Send byte data to a peer and wait for a response for the specified timeout duration.
         /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+        /// <param name="guid">GUID of the peer.</param>
         /// <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
         /// <param name="data">Data.</param>
+        /// <param name="metadata">Metadata dictionary.</param>
+        /// <param name="token">Cancellation token.</param>
         /// <returns>SyncResponse.</returns>
-        public SyncResponse SendAndWait(string ipPort, int timeoutMs, byte[] data)
+        public async Task<SyncResponse> SendAndWait(Guid guid, int timeoutMs, byte[] data, Dictionary<object, object> metadata = null, CancellationToken token = default)
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
             if (timeoutMs < 1) throw new ArgumentException("Timeout must be greater than zero.");
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-
-            long contentLength = 0;
             MemoryStream stream = new MemoryStream();
             stream.Write(data, 0, data.Length);
-            contentLength = data.Length; 
-
+            long contentLength = data.Length; 
             stream.Seek(0, SeekOrigin.Begin);
-            return SendAndWait(ipPort, timeoutMs, null, contentLength, stream);
-        }
-
-        /// <summary>
-        /// Send byte data to a peer and wait for a response for the specified timeout duration.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="data">Data.</param>
-        /// <returns>SyncResponse.</returns>
-        public SyncResponse SendAndWait(string ipPort, int timeoutMs, Dictionary<object, object> metadata, byte[] data)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (timeoutMs < 1) throw new ArgumentException("Timeout must be greater than zero.");
-            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-
-            long contentLength = 0;
-            MemoryStream stream = new MemoryStream();
-            stream.Write(data, 0, data.Length);
-            contentLength = data.Length;
-
-            stream.Seek(0, SeekOrigin.Begin);
-            return SendAndWait(ipPort, timeoutMs, metadata, contentLength, stream);
+            return await SendAndWait(guid, timeoutMs, contentLength, stream, metadata, token).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Send stream data to a peer and wait for a response for the specified timeout duration.
         /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+        /// <param name="guid">GUID of the peer.</param>
         /// <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
         /// <param name="contentLength">The number of bytes to read from the stream.</param>
         /// <param name="stream">The stream containing the data.</param>
+        /// <param name="metadata">Metadata to include with the message.</param>
+        /// <param name="token">Cancellation token.</param>
         /// <returns>SyncResponse.</returns>
-        public SyncResponse SendAndWait(string ipPort, int timeoutMs, long contentLength, Stream stream)
-        { 
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort)); 
+        public async Task<SyncResponse> SendAndWait(Guid guid, int timeoutMs, long contentLength, Stream stream, Dictionary<object, object> metadata = null, CancellationToken token = default)
+        {
             if (timeoutMs < 1) throw new ArgumentException("Timeout must be greater than zero.");
             if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new IOException("Cannot read from supplied stream.");
 
-            MeshClient currClient = GetMeshClientByIpPort(ipPort);
+            MeshClient currClient = GetMeshClientByGuid(guid);
             if (currClient == null || currClient == default(MeshClient))
             {
-                SyncResponse failed = new SyncResponse(SyncResponseStatus.PeerNotFound, 0, null);
+                SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.PeerNotFound, 0, null);
                 return failed;
             }
 
-            return SendAndWaitInternal(currClient, MessageType.Data, timeoutMs, null, contentLength, stream);
+            return await SendAndWaitInternal(currClient, MessageTypeEnum.Data, timeoutMs, contentLength, stream, metadata, token).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Send stream data to a peer and wait for a response for the specified timeout duration.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        /// <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
-        /// <param name="contentLength">The number of bytes to read from the stream.</param>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="stream">The stream containing the data.</param>
-        /// <returns>SyncResponse.</returns>
-        public SyncResponse SendAndWait(string ipPort, int timeoutMs, Dictionary<object, object> metadata, long contentLength, Stream stream)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (timeoutMs < 1) throw new ArgumentException("Timeout must be greater than zero.");
-            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanRead) throw new IOException("Cannot read from supplied stream.");
+        #endregion
 
-            MeshClient currClient = GetMeshClientByIpPort(ipPort);
-            if (currClient == null || currClient == default(MeshClient))
-            {
-                SyncResponse failed = new SyncResponse(SyncResponseStatus.PeerNotFound, 0, null);
-                return failed;
-            }
-
-            return SendAndWaitInternal(currClient, MessageType.Data, timeoutMs, metadata, contentLength, stream);
-        }
-
-        /// <summary>
-        /// Broadcast string data to all nodes.
-        /// </summary>
-        /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Broadcast(string data)
-        { 
-            if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return Broadcast(null, Encoding.UTF8.GetBytes(data));
-        }
-
-        /// <summary>
-        /// Broadcast string data to all nodes.
-        /// </summary>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Broadcast(Dictionary<object, object> metadata, string data)
-        {
-            if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return Broadcast(metadata, Encoding.UTF8.GetBytes(data));
-        }
-
-        /// <summary>
-        /// Broadcast byte data to all nodes.
-        /// </summary>
-        /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Broadcast(byte[] data)
-        {
-            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-            return Broadcast(null, data);
-        }
-
-        /// <summary>
-        /// Broadcast byte data to all nodes.
-        /// </summary>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Broadcast(Dictionary<object, object> metadata, byte[] data)
-        {
-            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-            long contentLength = 0;
-            MemoryStream stream = new MemoryStream();
-            stream.Write(data, 0, data.Length);
-            contentLength = data.Length; 
-            stream.Seek(0, SeekOrigin.Begin);
-            return Broadcast(null, contentLength, stream);
-        }
-
-        /// <summary>
-        /// Broadcast stream data to all nodes.
-        /// </summary>
-        /// <param name="contentLength">The number of bytes to read from the stream.</param>
-        /// <param name="stream">The stream containing the data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Broadcast(long contentLength, Stream stream)
-        {
-            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            return Broadcast(null, contentLength, stream);
-        }
-
-        /// <summary>
-        /// Broadcast stream data to all nodes.
-        /// </summary>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="contentLength">The number of bytes to read from the stream.</param>
-        /// <param name="stream">The stream containing the data.</param>
-        /// <returns>True if successful.</returns>
-        public bool Broadcast(Dictionary<object, object> metadata, long contentLength, Stream stream)
-        {
-            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            return BroadcastInternal(MessageType.Data, metadata, contentLength, stream);
-        }
+        #region Broadcast
 
         /// <summary>
         /// Broadcast string data to all nodes asynchronously.
         /// </summary>
         /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public async Task<bool> BroadcastAsync(string data)
-        {
-            if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return await BroadcastAsync(null, Encoding.UTF8.GetBytes(data));
-        }
-
-        /// <summary>
-        /// Broadcast string data to all nodes asynchronously.
-        /// </summary>
         /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="data">Data.</param>
+        /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> BroadcastAsync(Dictionary<object, object> metadata, string data)
+        public async Task<bool> Broadcast(string data, Dictionary<object, object> metadata = null, CancellationToken token = default)
         {
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            return await BroadcastAsync(metadata, Encoding.UTF8.GetBytes(data));
+            return await Broadcast(Encoding.UTF8.GetBytes(data), metadata, token).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Broadcast byte data to all nodes asynchronously.
         /// </summary>
         /// <param name="data">Data.</param>
-        /// <returns>True if successful.</returns>
-        public async Task<bool> BroadcastAsync(byte[] data)
-        {
-            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-            return await BroadcastAsync(null, data);
-        }
-
-        /// <summary>
-        /// Broadcast byte data to all nodes asynchronously.
-        /// </summary>
         /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="data">Data.</param>
+        /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> BroadcastAsync(Dictionary<object, object> metadata, byte[] data)
+        public async Task<bool> Broadcast(byte[] data, Dictionary<object, object> metadata = null, CancellationToken token = default)
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data)); 
-            long contentLength = 0;
             MemoryStream stream = new MemoryStream(data);
-            contentLength = data.Length; 
+            long contentLength = data.Length; 
             stream.Seek(0, SeekOrigin.Begin);
-            return await BroadcastInternalAsync(MessageType.Data, metadata, contentLength, stream);
+            return await BroadcastInternal(MessageTypeEnum.Data, contentLength, stream, metadata, token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -835,76 +478,42 @@ namespace WatsonMesh
         /// </summary>
         /// <param name="contentLength">The number of bytes to read from the stream.</param>
         /// <param name="stream">The stream containing the data.</param>
-        /// <returns>True if successful.</returns>
-        public async Task<bool> BroadcastAsync(long contentLength, Stream stream)
-        {
-            if (contentLength < 1) throw new ArgumentException("Content length must be at least one byte.");
-            if (stream == null || !stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
-            return await BroadcastAsync(null, contentLength, stream);
-        }
-
-        /// <summary>
-        /// Broadcast stream data to all nodes asynchronously.
-        /// </summary>
         /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="contentLength">The number of bytes to read from the stream.</param>
-        /// <param name="stream">The stream containing the data.</param>
+        /// <param name="token">Cancellation token.</param>
         /// <returns>True if successful.</returns>
-        public async Task<bool> BroadcastAsync(Dictionary<object, object> metadata, long contentLength, Stream stream)
+        public async Task<bool> Broadcast(long contentLength, Stream stream, Dictionary<object, object> metadata = null, CancellationToken token = default)
         {
             if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
             if (stream == null) throw new ArgumentNullException(nameof(stream));
-            return await BroadcastInternalAsync(MessageType.Data, metadata, contentLength, stream);
+            return await BroadcastInternal(MessageTypeEnum.Data, contentLength, stream, metadata, token).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Disconnect a remote client.
-        /// </summary>
-        /// <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-        public void DisconnectClient(string ipPort)
-        {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            _Server.DisconnectClient(ipPort);
-        }
+        #endregion
 
         #endregion
 
         #region Private-Methods
 
-        private MeshPeer GetPeerByIpPort(string ipPort)
+        private MeshPeer GetPeerByGuid(Guid guid)
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort)); 
-
             lock (_PeerLock)
             {
-                MeshPeer curr = _Peers.Where(p => p.IpPort.Equals(ipPort)).FirstOrDefault();
+                MeshPeer curr = _Peers.Where(p => p.Guid.Equals(guid)).FirstOrDefault();
                 if (curr == null || curr == default(MeshPeer)) return null;
                 return curr;
             }
         }
 
-        private MeshClient GetMeshClientByIpPort(string ipPort)
+        private MeshClient GetMeshClientByGuid(Guid guid)
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort)); 
-
             lock (_ClientsLock)
             {
-                MeshClient currClient = _Clients.Where(c => c.PeerNode.IpPort.Equals(ipPort)).FirstOrDefault();
+                MeshClient currClient = _Clients.Where(c => c.PeerNode.Guid.Equals(guid)).FirstOrDefault();
                 if (currClient == null || currClient == default(MeshClient)) return null;
                 return currClient;
             }
         }
 
-        private MeshPeer PeerFromIpPort(string ipPort)
-        {
-            lock (_PeerLock)
-            {
-                MeshPeer curr = _Peers.Where(p => p.IpPort.Equals(ipPort)).FirstOrDefault();
-                if (curr == null || curr == default(MeshPeer)) return null;
-                return curr;
-            }
-        }
-         
         #region Private-MeshClient-Callbacks
 
         private void MeshClientServerConnected(object sender, ServerConnectionEventArgs args)
@@ -929,23 +538,23 @@ namespace WatsonMesh
         {  
         }
          
-        private void MeshServerStreamReceived(object sender, StreamReceivedEventArgs args)
+        private async void MeshServerStreamReceived(object sender, StreamReceivedEventArgs args)
         {
             try
             {
                 Message currMsg = new Message(args.DataStream, _Settings.StreamBufferSize); 
 
-                MeshPeer currPeer = GetPeerByIpPort(currMsg.SourceIpPort);
+                MeshPeer currPeer = GetPeerByGuid(currMsg.SourceGuid);
                 if (currPeer == null || currPeer == default(MeshPeer))
                 {
-                    Logger?.Invoke("[MeshServer] ServerStreamReceived unsolicited message from " + currMsg.SourceIpPort + ", no peer found");
+                    Logger?.Invoke(_Header + "unsolicited message from " + currMsg.SourceIpPort + ", no peer found");
                     return;
                 }
 
-                MeshClient currClient = GetMeshClientByIpPort(currPeer.IpPort);
+                MeshClient currClient = GetMeshClientByGuid(currPeer.Guid);
                 if (currClient == null || currClient == default(MeshClient))
                 {
-                    Logger?.Invoke("[MeshServer] ServerStreamReceived unable to find client for peer " + currPeer.IpPort);
+                    Logger?.Invoke(_Header + "unable to find client for peer " + currPeer.IpPort);
                     return;
                 }
 
@@ -955,11 +564,15 @@ namespace WatsonMesh
                 {
                     if (SyncMessageReceived != null)
                     {
-                        SyncResponse syncResponse = SyncMessageReceived(payloadArgs);
+                        SyncResponse syncResponse = await SyncMessageReceived(payloadArgs);
                         syncResponse.DataStream.Seek(0, SeekOrigin.Begin); 
                         Message responseMsg = new Message(_Serializer, _IpPort, currPeer.IpPort, currMsg.TimeoutMs, false, false, true, currMsg.Type, currMsg.Metadata, syncResponse.ContentLength, syncResponse.DataStream);
                         responseMsg.Id = currMsg.Id;  
-                        SendSyncResponseInternal(currClient, responseMsg);
+                        await SendSyncResponseInternal(currClient, responseMsg);
+                    }
+                    else
+                    {
+                        Logger?.Invoke(_Header + "no handler configured for sync requests, ignoring");
                     }
                 }
                 else if (currMsg.SyncResponse)
@@ -976,7 +589,7 @@ namespace WatsonMesh
             }
             catch (Exception e)
             {
-                Logger?.Invoke("[MeshNode] StreamReceived exception: " + Environment.NewLine + _Serializer.SerializeJson(e, true));
+                Logger?.Invoke(_Header + "StreamReceived exception: " + Environment.NewLine + _Serializer.SerializeJson(e, true));
             } 
         }
 
@@ -984,42 +597,7 @@ namespace WatsonMesh
 
         #region Private-Message-Methods
          
-        private bool SendInternal(MeshClient client, MessageType msgType, Dictionary<object, object> metadata, long contentLength, Stream stream)
-        {
-            if (client == null) throw new ArgumentNullException(nameof(client));
-
-            Message msg = new Message(_Serializer, _IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, contentLength, stream);
-            byte[] headerBytes = msg.ToHeaderBytes();
-            long totalLen = headerBytes.Length;
-
-            MemoryStream ms = new MemoryStream();
-            ms.Write(headerBytes, 0, headerBytes.Length);
-
-            if (contentLength > 0 && stream != null && stream.CanRead)
-            {
-                if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
-
-                int bytesRead = 0;
-                long bytesRemaining = contentLength;
-                byte[] buffer = new byte[_Settings.StreamBufferSize];
-
-                while (bytesRemaining > 0)
-                {
-                    bytesRead = stream.Read(buffer, 0, buffer.Length);
-                    if (bytesRead > 0)
-                    {
-                        ms.Write(buffer, 0, bytesRead);
-                        bytesRemaining -= bytesRead;
-                        totalLen += bytesRead;
-                    }
-                }
-            }
-
-            ms.Seek(0, SeekOrigin.Begin);
-            return client.Send(totalLen, ms);
-        }
-
-        private async Task<bool> SendInternalAsync(MeshClient client, MessageType msgType, Dictionary<object, object> metadata, long contentLength, Stream stream)
+        private async Task<bool> SendInternal(MeshClient client, MessageTypeEnum msgType, long contentLength, Stream stream, Dictionary<object, object> metadata, CancellationToken token = default)
         {
             if (client == null) throw new ArgumentNullException(nameof(client));
 
@@ -1028,7 +606,7 @@ namespace WatsonMesh
             long totalLen = headerBytes.Length;
 
             MemoryStream ms = new MemoryStream();
-            ms.Write(headerBytes, 0, headerBytes.Length);
+            await ms.WriteAsync(headerBytes, 0, headerBytes.Length, token).ConfigureAwait(false);
 
             if (contentLength > 0 && stream != null && stream.CanRead)
             {
@@ -1040,10 +618,10 @@ namespace WatsonMesh
 
                 while (bytesRemaining > 0)
                 {
-                    bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
                     if (bytesRead > 0)
                     {
-                        ms.Write(buffer, 0, bytesRead);
+                        await ms.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
                         bytesRemaining -= bytesRead;
                         totalLen += bytesRead;
                     }
@@ -1051,67 +629,17 @@ namespace WatsonMesh
             }
 
             ms.Seek(0, SeekOrigin.Begin); 
-            return await client.SendAsync(totalLen, ms);
+            return await client.SendAsync(totalLen, ms).ConfigureAwait(false);
         }
 
-        #endregion
-
-        #region Private-Broadcast-Methods
-         
-        private bool BroadcastInternal(MessageType msgType, Dictionary<object, object> metadata, long contentLength, Stream stream)
-        {
-            Message msg = new Message(_Serializer, _IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream);
-            byte[] headerBytes = msg.ToHeaderBytes();
-            long totalLen = headerBytes.Length;
-
-            MemoryStream ms = new MemoryStream();
-            ms.Write(headerBytes, 0, headerBytes.Length);
-
-            if (contentLength > 0 && stream != null && stream.CanRead)
-            {
-                if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
-
-                int bytesRead = 0;
-                long bytesRemaining = contentLength;
-                byte[] buffer = new byte[_Settings.StreamBufferSize];
-
-                while (bytesRemaining > 0)
-                {
-                    bytesRead = stream.Read(buffer, 0, buffer.Length);
-                    if (bytesRead > 0)
-                    {
-                        ms.Write(buffer, 0, bytesRead);
-                        bytesRemaining -= bytesRead;
-                        totalLen += bytesRead;
-                    }
-                }
-            }
-
-            bool success = true;
-            List<MeshClient> currClients = null;
-
-            lock (_ClientsLock)
-            {
-                currClients = new List<MeshClient>(_Clients);
-            }
-
-            foreach (MeshClient currClient in _Clients)
-            {
-                ms.Seek(0, SeekOrigin.Begin);
-                success = success && currClient.Send(totalLen, ms);
-            }
-
-            return success;
-        }
-         
-        private async Task<bool> BroadcastInternalAsync(MessageType msgType, Dictionary<object, object> metadata, long contentLength, Stream stream)
+        private async Task<bool> BroadcastInternal(MessageTypeEnum msgType, long contentLength, Stream stream, Dictionary<object, object> metadata, CancellationToken token = default)
         { 
             Message msg = new Message(_Serializer, _IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream); 
             byte[] headerBytes = msg.ToHeaderBytes();
             long totalLen = headerBytes.Length;
 
             MemoryStream ms = new MemoryStream();
-            ms.Write(headerBytes, 0, headerBytes.Length);
+            await ms.WriteAsync(headerBytes, 0, headerBytes.Length, token).ConfigureAwait(false);
 
             if (contentLength > 0 && stream != null && stream.CanRead)
             {
@@ -1123,10 +651,10 @@ namespace WatsonMesh
 
                 while (bytesRemaining > 0)
                 {
-                    bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
                     if (bytesRead > 0)
                     {
-                        ms.Write(buffer, 0, bytesRead);
+                        await ms.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
                         bytesRemaining -= bytesRead;
                         totalLen += bytesRead;
                     }
@@ -1144,16 +672,12 @@ namespace WatsonMesh
             foreach (MeshClient currClient in _Clients)
             {
                 ms.Seek(0, SeekOrigin.Begin);
-                success = success && await currClient.SendAsync(totalLen, ms);
+                success = success && await currClient.SendAsync(totalLen, ms, token).ConfigureAwait(false);
             } 
 
             return success; 
         }
-
-        #endregion
-
-        #region Private-Sync-Message-Methods
-
+         
         private bool AddSyncRequest(string id, int timeoutMs)
         {
             if (String.IsNullOrEmpty(id)) throw new ArgumentNullException(nameof(id));
@@ -1161,7 +685,7 @@ namespace WatsonMesh
             return _SyncRequests.TryAdd(id, DateTime.Now.AddMilliseconds(timeoutMs));
         }
          
-        private SyncResponse SendAndWaitInternal(MeshClient client, MessageType msgType, int timeoutMs, Dictionary<object, object> metadata, long contentLength, Stream stream)
+        private async Task<SyncResponse> SendAndWaitInternal(MeshClient client, MessageTypeEnum msgType, int timeoutMs, long contentLength, Stream stream, Dictionary<object, object> metadata, CancellationToken token = default)
         { 
             Message msg = new Message(_Serializer, _IpPort, client.PeerNode.IpPort, timeoutMs, false, true, false, msgType, metadata, contentLength, stream);
             byte[] headers = msg.ToHeaderBytes();
@@ -1170,12 +694,12 @@ namespace WatsonMesh
             {
                 if (!AddSyncRequest(msg.Id, timeoutMs))
                 {
-                    SyncResponse failed = new SyncResponse(SyncResponseStatus.Failed, 0, null);
+                    SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Failed, 0, null);
                     return failed;
                 }
 
                 MemoryStream ms = new MemoryStream();
-                ms.Write(headers, 0, headers.Length);
+                await ms.WriteAsync(headers, 0, headers.Length, token).ConfigureAwait(false);
 
                 long totalLength = headers.Length;
                 int bytesRead = 0;
@@ -1184,20 +708,20 @@ namespace WatsonMesh
 
                 while (bytesRemaining > 0)
                 {
-                    bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
                     if (bytesRead > 0)
                     {
                         bytesRemaining -= bytesRead;
                         totalLength += bytesRead;
-                        ms.Write(buffer, 0, bytesRead);
+                        await ms.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
                     }
                 }
-
+                
                 ms.Seek(0, SeekOrigin.Begin);
 
-                if (!client.Send(totalLength, ms))
+                if (!await client.SendAsync(totalLength, ms, token).ConfigureAwait(false))
                 {
-                    SyncResponse failed = new SyncResponse(SyncResponseStatus.SendFailure, 0, null);
+                    SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.SendFailure, 0, null);
                     return failed;
                 }
 
@@ -1205,7 +729,7 @@ namespace WatsonMesh
             }
             catch (Exception e)
             {
-                SyncResponse failed = new SyncResponse(SyncResponseStatus.Failed, 0, null);
+                SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Failed, 0, null);
                 failed.Exception = e;
                 return failed;
             }
@@ -1216,13 +740,13 @@ namespace WatsonMesh
             }
         }
 
-        private bool SendSyncResponseInternal(MeshClient client, Message msg)
+        private async Task<bool> SendSyncResponseInternal(MeshClient client, Message msg, CancellationToken token = default)
         {
             if (msg.DataStream != null)
             {
                 byte[] headers = msg.ToHeaderBytes();
                 MemoryStream ms = new MemoryStream();
-                ms.Write(headers, 0, headers.Length);
+                await ms.WriteAsync(headers, 0, headers.Length, token).ConfigureAwait(false);
 
                 long totalLength = headers.Length;
                 long bytesRemaining = msg.ContentLength;
@@ -1231,17 +755,17 @@ namespace WatsonMesh
 
                 while (bytesRemaining > 0)
                 {
-                    bytesRead = msg.DataStream.Read(buffer, 0, buffer.Length);
+                    bytesRead = await msg.DataStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
                     if (bytesRead > 0)
                     {
                         bytesRemaining -= bytesRead;
                         totalLength += bytesRead;
-                        ms.Write(buffer, 0, bytesRead);
+                        await ms.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
                     }
                 }
 
                 ms.Seek(0, SeekOrigin.Begin);
-                return client.Send(totalLength, ms);
+                return await client.SendAsync(totalLength, ms, token).ConfigureAwait(false);
             }
             else
             {
@@ -1263,7 +787,7 @@ namespace WatsonMesh
                 {
                     if (!_PendingResponses.TryGetValue(id, out pendingResp))
                     {
-                        SyncResponse failed = new SyncResponse(SyncResponseStatus.Failed, 0, null);
+                        SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Failed, 0, null);
                         return failed;
                     }
 
@@ -1272,11 +796,11 @@ namespace WatsonMesh
 
                     if (DateTime.Now > expiration)
                     {
-                        SyncResponse failed = new SyncResponse(SyncResponseStatus.Expired, 0, null);
+                        SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Expired, 0, null);
                         return failed; 
                     }
 
-                    SyncResponse success = new SyncResponse(SyncResponseStatus.Success, respMsg.ContentLength, respMsg.DataStream);
+                    SyncResponse success = new SyncResponse(SyncResponseStatusEnum.Success, respMsg.ContentLength, respMsg.DataStream);
                     return success;
                 }
 
@@ -1286,7 +810,7 @@ namespace WatsonMesh
                 {
                     _PendingResponses.TryRemove(id, out pendingResp);
 
-                    SyncResponse failed = new SyncResponse(SyncResponseStatus.Expired, 0, null);
+                    SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Expired, 0, null);
                     return failed;
                 }
 

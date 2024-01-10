@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-using WatsonTcp;
+﻿namespace WatsonMesh
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Net;
+    using System.Net.Sockets;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using WatsonTcp;
 
-namespace WatsonMesh
-{ 
     internal class MeshServer : IDisposable
     {
         #region Internal-Members
@@ -24,6 +21,7 @@ namespace WatsonMesh
 
         #region Private-Members
 
+        private string _Header = "[MeshServer] ";
         private bool _Disposed = false;
         private MeshSettings _Settings;
         private string _Ip = null;
@@ -55,13 +53,13 @@ namespace WatsonMesh
             List<string> localIpAddresses = GetLocalIpAddresses();
             if (_Ip.Equals("127.0.0.1"))
             {
-                Logger?.Invoke("[MeshServer] Loopback IP address detected; only connections from local machine will be accepted");
+                Logger?.Invoke(_Header + "loopback IP address detected; only connections from local machine will be accepted");
             }
             else
             {
                 if (!localIpAddresses.Contains(_Ip))
                 {
-                    Logger?.Invoke("[MeshServer] Specified IP address '" + _Ip + "' not found in local IP address list:");
+                    Logger?.Invoke(_Header + "specified IP address '" + _Ip + "' not found in local IP address list:");
                     foreach (string curr in localIpAddresses) Logger?.Invoke("  " + curr);
                     throw new ArgumentException("IP address must either be 127.0.0.1 or the IP address of a local network interface.");
                 }
@@ -69,11 +67,11 @@ namespace WatsonMesh
 
             if (_Ssl)
             {
-                Logger?.Invoke("[MeshServer] Initialized TCP server with SSL on IP:port " + _IpPort);
+                Logger?.Invoke(_Header + "initialized TCP server with SSL on IP:port " + _IpPort);
             }
             else
             {
-                Logger?.Invoke("[MeshServer] Initialized TCP server on IP:port " + _IpPort);
+                Logger?.Invoke(_Header + "initialized TCP server on IP:port " + _IpPort);
             }
         }
 
@@ -86,10 +84,10 @@ namespace WatsonMesh
         /// </summary>
         public void Dispose()
         {
-            Logger?.Invoke("[MeshServer] Disposing");
+            Logger?.Invoke(_Header + "disposing");
             Dispose(true);
             GC.SuppressFinalize(this);
-            Logger?.Invoke("[MeshServer] Disposed");
+            Logger?.Invoke(_Header + "disposed");
         }
 
         #endregion
@@ -106,7 +104,7 @@ namespace WatsonMesh
                     _PfxCertificateFile,
                     _PfxCertificatePassword);
 
-                Logger?.Invoke("[MeshServer] Starting TCP server with SSL on IP:port " + _IpPort);
+                Logger?.Invoke(_Header + "starting TCP server with SSL on IP:port " + _IpPort);
             }
             else
             {
@@ -114,7 +112,7 @@ namespace WatsonMesh
                     _Ip,
                     _Port);
 
-                Logger?.Invoke("[MeshServer] Starting TCP server on IP:port " + _IpPort);
+                Logger?.Invoke(_Header + "starting TCP server on IP:port " + _IpPort);
             }
 
             _TcpServer.Settings.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates;
@@ -128,14 +126,13 @@ namespace WatsonMesh
 
             _TcpServer.Start();
 
-            Logger?.Invoke("[MeshServer] Server started");
+            Logger?.Invoke(_Header + "server started");
         }
 
-        internal void DisconnectClient(string ipPort)
+        internal async Task DisconnectClient(Guid guid, CancellationToken token = default)
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            Logger?.Invoke("[MeshServer] Disconnecting client " + ipPort);
-            _TcpServer.DisconnectClient(ipPort);
+            Logger?.Invoke(_Header + "disconnecting client " + guid.ToString());
+            await _TcpServer.DisconnectClientAsync(guid, MessageStatus.Removed, true, token).ConfigureAwait(false);
         }
 
         protected virtual void Dispose(bool disposing)
@@ -159,19 +156,19 @@ namespace WatsonMesh
 
         private void MeshServerClientConnected(object sender, ConnectionEventArgs args)
         {
-            Logger?.Invoke("[MeshServer] Client " + args.Client.IpPort + " connected");
-            ClientConnected?.Invoke(this, new ClientConnectionEventArgs(args.Client.IpPort));
+            Logger?.Invoke(_Header + "client " + args.Client.Guid + " " + args.Client.IpPort + " connected");
+            ClientConnected?.Invoke(this, new ClientConnectionEventArgs(args.Client.Guid, args.Client.IpPort));
         }
 
         private void MeshServerClientDisconnected(object sender, DisconnectionEventArgs args)
         {
-            Logger?.Invoke("[MeshServer] Client " + args.Client.IpPort + " disconnected");
-            ClientDisconnected?.Invoke(this, new ClientConnectionEventArgs(args.Client.IpPort));
+            Logger?.Invoke(_Header + "client " + args.Client.Guid + " " + args.Client.IpPort + " disconnected");
+            ClientDisconnected?.Invoke(this, new ClientConnectionEventArgs(args.Client.Guid, args.Client.IpPort));
         }
 
         private void MeshServerStreamReceived(object sender, StreamReceivedEventArgs args)
         {
-            Logger?.Invoke("[MeshServer] Message received from client " + args.Client.IpPort + ": " + args.ContentLength + " bytes");
+            Logger?.Invoke(_Header + "message from client " + args.Client.Guid + " " + args.Client.IpPort + ": " + args.ContentLength + " bytes");
             MessageReceived?.Invoke(this, args);
         }
 

@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace WatsonMesh
+﻿namespace WatsonMesh
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text;
+
     /// <summary>
     /// Message object, exchanged between peers in the mesh network.
     /// </summary>
@@ -20,8 +18,12 @@ namespace WatsonMesh
         internal bool SyncResponse { get; set; } 
         internal int TimeoutMs { get; set; } 
         internal string SourceIpPort { get; set; } 
+
+        internal Guid SourceGuid { get; set; }
         internal string DestinationIpPort { get; set; } 
-        internal MessageType Type { get; set; } 
+
+        internal Guid DestinationGuid { get; set; }
+        internal MessageTypeEnum Type { get; set; } 
         internal Dictionary<object, object> Metadata 
         { 
             get
@@ -43,7 +45,7 @@ namespace WatsonMesh
             { 
                 if (_Data != null) return _Data;
                 if (ContentLength <= 0) return null;
-                _Data = Common.StreamToBytes(DataStream);
+                _Data = Common.StreamToBytes(DataStream).Result;
                 return _Data;
             }
         }
@@ -73,7 +75,7 @@ namespace WatsonMesh
             bool isBroadcast, 
             bool syncRequest, 
             bool syncResponse, 
-            MessageType msgType, 
+            MessageTypeEnum msgType, 
             Dictionary<object, object> metadata, 
             long contentLength, 
             Stream stream)
@@ -178,7 +180,7 @@ namespace WatsonMesh
                             DestinationIpPort = val;
                             break;
                         case "Type":
-                            Type = (MessageType)(Enum.Parse(typeof(MessageType), val));
+                            Type = (MessageTypeEnum)(Enum.Parse(typeof(MessageTypeEnum), val));
                             break;
                         case "Metadata":
                             Metadata = _Serializer.DeserializeJson<Dictionary<object, object>>(val);

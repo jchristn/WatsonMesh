@@ -1,20 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks; 
-using System.Runtime.Serialization;
-
-namespace WatsonMesh
+﻿namespace WatsonMesh
 {
+    using System.Runtime.Serialization;
+    using System.Text.Json.Serialization;
+
     /// <summary>
-    /// The type of message.  Reserved for future use.
+    /// The type of message.
     /// </summary> 
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum MessageTypeEnum
     { 
         /// <summary>
         /// Application data.
         /// </summary>
+        [EnumMember(Value = "Data")]
         Data 
     }
 }

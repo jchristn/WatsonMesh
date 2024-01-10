@@ -14,7 +14,7 @@ namespace TestNetCore
         static string _Ip;
         static int _Port = 0;
         static string _IpPort;
-        static List<string> _PeerIpPorts;
+        static Guid _Guid = default(Guid);
         static MeshSettings _Settings; 
         static MeshNode _Mesh;
 
@@ -24,7 +24,7 @@ namespace TestNetCore
         {
             if (args != null && args.Length > 0)
             { 
-                ParseArguments(args, out _Ip, out _Port, out _PeerIpPorts);
+                ParseArguments(args, out _Ip, out _Port, out _Guid);
                 _IpPort = _Ip + ":" + _Port;
             }
             else
@@ -41,25 +41,14 @@ namespace TestNetCore
             _Settings.StreamBufferSize = 65536;
             _Settings.ReconnectIntervalMs = 1000; 
 
-            _Mesh = new MeshNode(_Ip, _Port);
+            _Mesh = new MeshNode(new MeshSettings(), _Ip, _Port);
             _Mesh.PeerConnected += PeerConnected;
             _Mesh.PeerDisconnected += PeerDisconnected;
             _Mesh.MessageReceived += MessageReceived;
             _Mesh.SyncMessageReceived = SyncMessageReceived;
-            // _Mesh.Logger = Logger;
+            _Mesh.Logger = Logger;
 
             _Mesh.Start();
-
-            if (_PeerIpPorts != null && _PeerIpPorts.Count > 0)
-            {
-                Console.Write("Adding peers: ");
-                foreach (string curr in _PeerIpPorts)
-                {
-                    Console.Write(curr + " ");
-                    _Mesh.Add(new MeshPeer(curr, false));
-                }
-                Console.WriteLine("");
-            }
 
             while (_RunForever)
             {
@@ -84,7 +73,7 @@ namespace TestNetCore
                         break;
 
                     case "list":
-                        peers = _Mesh.GetPeers();
+                        peers = _Mesh.GetPeers().ToList();
                         if (peers != null && peers.Count > 0)
                         {
                             Console.WriteLine("Configured peers: " + peers.Count);
@@ -132,15 +121,12 @@ namespace TestNetCore
                     case "add":
                         _Mesh.Add(
                             new MeshPeer(
-                                Inputty.GetString("IP:port:", "127.0.0.1:8000", false),
-                                false));
+                                Inputty.GetGuid  ("GUID   :", default(Guid)),
+                                Inputty.GetString("IP:port:", "127.0.0.1:8000", false)));
                         break;
 
                     case "del":
-                        _Mesh.Remove(
-                            new MeshPeer(
-                                Inputty.GetString("IP:port:", "127.0.0.1:8000", false), 
-                                false));
+                        _Mesh.Remove(Inputty.GetGuid("GUID:", default(Guid)));
                         break;
 
                     case "health":
@@ -148,9 +134,7 @@ namespace TestNetCore
                         break;
 
                     case "nodehealth":
-                        Console.WriteLine(
-                            _Mesh.IsServerConnected(
-                                Inputty.GetString("IP:Port", "127.0.0.1:8000", false)));
+                        Console.WriteLine(Inputty.GetGuid("GUID:", default(Guid)));
                         break;
                 }
             }
@@ -175,11 +159,11 @@ namespace TestNetCore
             Console.WriteLine("  nodehealth    display if a connection to a peer is healthy");
         }
         
-        static void ParseArguments(string[] args, out string ip, out int port, out List<string> peerIpPorts)
+        static void ParseArguments(string[] args, out string ip, out int port, out Guid guid)
         {
             ip = null;
             port = -1;
-            peerIpPorts = new List<string>();
+            guid = default(Guid);
 
             if (args != null && args.Length > 0)
             { 
@@ -196,12 +180,13 @@ namespace TestNetCore
                             }
                         }
                     }
-
-                    if (curr.StartsWith("-peers="))
+                    else if (curr.StartsWith("-guid="))
                     {
-                        string val = curr.Replace("-peers=", "");
-                        string[] peers = val.Split(',');
-                        foreach (string peer in peers) peerIpPorts.Add(peer);
+                        string val = curr.Replace("-guid=", "");
+                        if (!String.IsNullOrEmpty(val))
+                        {
+                            guid = Guid.Parse(val);
+                        }
                     }
                 }
             }
@@ -211,8 +196,8 @@ namespace TestNetCore
         {
             string userInput = Inputty.GetString("Data:", "some data", false);
             if (_Mesh.Send(
-                Inputty.GetString("IP:Port", "127.0.0.1:8000", false),
-                userInput))
+                Inputty.GetGuid("GUID:", default(Guid)),
+                userInput).Result)
             {
                 Console.WriteLine("Success"); 
             }
@@ -229,10 +214,7 @@ namespace TestNetCore
             md.Add("Key2", "Val2");
 
             string userInput = Inputty.GetString("Data:", "some data", false);
-            if (_Mesh.Send(
-                Inputty.GetString("IP:Port", "127.0.0.1:8000", false),
-                md,
-                userInput))
+            if (_Mesh.Send(Inputty.GetGuid("GUID:", default(Guid)), userInput, md).Result)
             {
                 Console.WriteLine("Success");
             }
@@ -246,9 +228,9 @@ namespace TestNetCore
         {
             string userInput = Inputty.GetString("Data:", "some data", false);
             SyncResponse resp = _Mesh.SendAndWait(
-                Inputty.GetString("IP:Port", "127.0.0.1:8000", false),
+                Inputty.GetGuid   ("GUID      :", default(Guid)),
                 Inputty.GetInteger("Timeout ms:", 15000, true, false),
-                userInput);
+                userInput).Result;
 
             if (resp != null)
             {
@@ -290,10 +272,9 @@ namespace TestNetCore
 
             string userInput = Inputty.GetString("Data:", "some data", false);
             SyncResponse resp = _Mesh.SendAndWait(
-                Inputty.GetString("IP:Port", "127.0.0.1:8000", false),
+                Inputty.GetGuid   ("GUID      :", default(Guid)),
                 Inputty.GetInteger("Timeout ms:", 15000, true, false),
-                md,
-                userInput);
+                userInput, md).Result;
 
             if (resp != null)
             {
@@ -330,7 +311,7 @@ namespace TestNetCore
         static void Broadcast()
         {
             string userInput = Inputty.GetString("Data:", "some data", false);
-            if (_Mesh.Broadcast(userInput))
+            if (_Mesh.Broadcast(userInput).Result)
             {
                 Console.WriteLine("Success");
             }
@@ -342,12 +323,12 @@ namespace TestNetCore
 
         static void PeerConnected(object sender, ServerConnectionEventArgs args)
         {
-            Console.WriteLine("Peer " + args.PeerNode.IpPort + " connected"); 
+            Console.WriteLine("Peer " + args.PeerNode.Guid + " " + args.PeerNode.IpPort + " connected"); 
         }
          
         static void PeerDisconnected(object sender, ServerConnectionEventArgs args) 
         {
-            Console.WriteLine("Peer " + args.PeerNode.IpPort + " disconnected"); 
+            Console.WriteLine("Peer " + args.PeerNode.Guid + " " + args.PeerNode.IpPort + " disconnected"); 
         }
          
         static void MessageReceived(object sender, MessageReceivedEventArgs args) 
@@ -363,8 +344,10 @@ namespace TestNetCore
                 }
             }
         }
-         
-        static SyncResponse SyncMessageReceived(MessageReceivedEventArgs args)
+
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        static async Task<SyncResponse> SyncMessageReceived(MessageReceivedEventArgs args)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             Console.WriteLine("[sync] " + args.SourceIpPort + " " + args.ContentLength + " bytes: " + Encoding.UTF8.GetString(args.Data));
             if (args.Metadata != null && args.Metadata.Count > 0)
@@ -381,7 +364,7 @@ namespace TestNetCore
             byte[] respData = Encoding.UTF8.GetBytes(resp);
             MemoryStream ms = new MemoryStream(respData);
             ms.Seek(0, SeekOrigin.Begin);
-            return new SyncResponse(SyncResponseStatus.Success, respData.Length, ms);
+            return new SyncResponse(SyncResponseStatusEnum.Success, respData.Length, ms);
         } 
 
         static void ParseIpPort(string ipPort, out string ip, out int port)

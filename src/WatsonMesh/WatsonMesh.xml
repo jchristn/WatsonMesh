@@ -9,15 +9,21 @@
             Event arguments passed when a client connects or disconnects.
             </summary>
         </member>
+        <member name="P:WatsonMesh.ClientConnectionEventArgs.Guid">
+            <summary>
+            Client GUID.
+            </summary>
+        </member>
         <member name="P:WatsonMesh.ClientConnectionEventArgs.IpPort">
             <summary>
             Client metadata.
             </summary>
         </member>
-        <member name="M:WatsonMesh.ClientConnectionEventArgs.#ctor(System.String)">
+        <member name="M:WatsonMesh.ClientConnectionEventArgs.#ctor(System.Guid,System.String)">
             <summary>
             Instantiate.
             </summary>
+            <param name="guid">Guid.</param>
             <param name="ipPort">IP:port.</param>
         </member>
         <member name="T:WatsonMesh.Common">
@@ -130,22 +136,7 @@
             Serializer.
             </summary>
         </member>
-        <member name="M:WatsonMesh.MeshNode.#ctor(System.String,System.Int32)">
-            <summary>
-            Instantiate the platform with no peers and without SSL using the default settings.
-            </summary>
-            <param name="ip">The IP address; either 127.0.0.1, or, an address that maps to a local network interface.</param>
-            <param name="port">The TCP port on which to listen.</param>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.#ctor(WatsonMesh.MeshSettings,System.String,System.Int32)">
-            <summary>
-            Instantiate the platform with no peers and without SSL.
-            </summary>
-            <param name="settings">Settings for the mesh network.</param> 
-            <param name="ip">The IP address; either 127.0.0.1, or, an address that maps to a local network interface.</param>
-            <param name="port">The TCP port on which to listen.</param>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.#ctor(WatsonMesh.MeshSettings,System.String,System.Int32,System.String,System.String)">
+        <member name="M:WatsonMesh.MeshNode.#ctor(WatsonMesh.MeshSettings,System.String,System.Int32,System.Boolean,System.String,System.String)">
             <summary>
             Instantiate the platform with no peers with SSL.  
             Be sure to Start() and then Add(Peer) peers.
@@ -153,6 +144,7 @@
             <param name="settings">Settings for the mesh network.</param> 
             <param name="ip">The IP address; either 127.0.0.1, or, an address that maps to a local network interface.</param>
             <param name="port">The TCP port on which to listen.</param>
+            <param name="ssl">Enable or disable SSL.</param>
             <param name="pfxCertFile">The PFX certificate file.</param>
             <param name="pfxCertPass">The password to the PFX certificate file.</param>
         </member>
@@ -161,12 +153,19 @@
             Start the mesh network server.
             </summary>
         </member>
-        <member name="M:WatsonMesh.MeshNode.IsServerConnected(System.String)">
+        <member name="M:WatsonMesh.MeshNode.IsPeerConnected(System.Guid)">
             <summary>
             Check if a specific remote server connection is alive.
             </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <returns>True if healthy.</returns>
+            <param name="guid">GUID of the peer.</param>
+            <returns>True if connected.</returns>
+        </member>
+        <member name="M:WatsonMesh.MeshNode.DisconnectClient(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Disconnect a remote client.
+            </summary>
+            <param name="guid">GUID of the peer.</param>
+            <param name="token">Cancellation token.</param>
         </member>
         <member name="M:WatsonMesh.MeshNode.Add(WatsonMesh.MeshPeer)">
             <summary>
@@ -174,11 +173,11 @@
             </summary>
             <param name="peer">Peer.</param>
         </member>
-        <member name="M:WatsonMesh.MeshNode.Remove(WatsonMesh.MeshPeer)">
+        <member name="M:WatsonMesh.MeshNode.Remove(System.Guid)">
             <summary>
             Remove a peer from the network.
             </summary>
-            <param name="peer">Peer.</param>
+            <param name="guid">Guid.</param>
         </member>
         <member name="M:WatsonMesh.MeshNode.Exists(WatsonMesh.MeshPeer)">
             <summary>
@@ -199,277 +198,105 @@
             </summary>
             <returns>List of Peer.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.Send(System.String,System.String)">
-            <summary>
-            Send string data to a peer.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Send(System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.String)">
-            <summary>
-            Send string data to a peer.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Send(System.String,System.Byte[])">
-            <summary>
-            Send byte data to a peer.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Send(System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Byte[])">
-            <summary>
-            Send byte data to a peer.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Send(System.String,System.Int64,System.IO.Stream)">
-            <summary>
-            Send byte data to a peer using a stream.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="contentLength">The number of bytes to read from the stream.</param>
-            <param name="stream">The stream containing the data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Send(System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Int64,System.IO.Stream)">
-            <summary>
-            Send byte data to a peer using a stream.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="contentLength">The number of bytes to read from the stream.</param>
-            <param name="stream">The stream containing the data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.SendAsync(System.String,System.String)">
+        <member name="M:WatsonMesh.MeshNode.Send(System.Guid,System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send string data to a peer asynchronously.
             </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+            <param name="guid">GUID of the peer.</param>
             <param name="data">Data.</param>
+            <param name="metadata">Metadata dictionary.</param>
+            <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.SendAsync(System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.String)">
-            <summary>
-            Send string data to a peer asynchronously.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.SendAsync(System.String,System.Byte[])">
+        <member name="M:WatsonMesh.MeshNode.Send(System.Guid,System.Byte[],System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send byte data to a peer asynchronously.
             </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+            <param name="guid">GUID of the peer.</param>
             <param name="data">Data.</param>
+            <param name="metadata">Metadata dictionary.</param>
+            <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.SendAsync(System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Byte[])">
-            <summary>
-            Send byte data to a peer asynchronously.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.SendAsync(System.String,System.Int64,System.IO.Stream)">
+        <member name="M:WatsonMesh.MeshNode.Send(System.Guid,System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send byte data to a peer asynchronously using a stream.
             </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+            <param name="guid">GUID of the peer.</param>
             <param name="contentLength">The number of bytes to read from the stream.</param>
             <param name="stream">The stream containing the data.</param>
+            <param name="metadata">Metadata dictionary.</param>
+            <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.SendAsync(System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Int64,System.IO.Stream)">
-            <summary>
-            Send byte data to a peer asynchronously using a stream.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="contentLength">The number of bytes to read from the stream.</param>
-            <param name="stream">The stream containing the data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.String,System.Int32,System.String)">
+        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.Guid,System.Int32,System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send string data to a peer and wait for a response for the specified timeout duration.
             </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+            <param name="guid">GUID of the peer.</param>
             <param name="timeoutMs">Timeout in milliseconds.</param>
             <param name="data">Data.</param>
+            <param name="metadata">Metadata dictionary.</param>
+            <param name="token">Cancellation token.</param>
             <returns>SyncResponse.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.String,System.Int32,System.Collections.Generic.Dictionary{System.Object,System.Object},System.String)">
-            <summary>
-            Send string data to a peer and wait for a response for the specified timeout duration.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="timeoutMs">Timeout in milliseconds.</param>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="data">Data.</param>
-            <returns>SyncResponse.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.String,System.Int32,System.Byte[])">
+        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.Guid,System.Int32,System.Byte[],System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send byte data to a peer and wait for a response for the specified timeout duration.
             </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+            <param name="guid">GUID of the peer.</param>
             <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
             <param name="data">Data.</param>
+            <param name="metadata">Metadata dictionary.</param>
+            <param name="token">Cancellation token.</param>
             <returns>SyncResponse.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.String,System.Int32,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Byte[])">
-            <summary>
-            Send byte data to a peer and wait for a response for the specified timeout duration.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="data">Data.</param>
-            <returns>SyncResponse.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.String,System.Int32,System.Int64,System.IO.Stream)">
+        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.Guid,System.Int32,System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send stream data to a peer and wait for a response for the specified timeout duration.
             </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
+            <param name="guid">GUID of the peer.</param>
             <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
             <param name="contentLength">The number of bytes to read from the stream.</param>
             <param name="stream">The stream containing the data.</param>
+            <param name="metadata">Metadata to include with the message.</param>
+            <param name="token">Cancellation token.</param>
             <returns>SyncResponse.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.String,System.Int32,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Int64,System.IO.Stream)">
-            <summary>
-            Send stream data to a peer and wait for a response for the specified timeout duration.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
-            <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
-            <param name="contentLength">The number of bytes to read from the stream.</param>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="stream">The stream containing the data.</param>
-            <returns>SyncResponse.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Broadcast(System.String)">
-            <summary>
-            Broadcast string data to all nodes.
-            </summary>
-            <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Collections.Generic.Dictionary{System.Object,System.Object},System.String)">
-            <summary>
-            Broadcast string data to all nodes.
-            </summary>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Byte[])">
-            <summary>
-            Broadcast byte data to all nodes.
-            </summary>
-            <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Collections.Generic.Dictionary{System.Object,System.Object},System.Byte[])">
-            <summary>
-            Broadcast byte data to all nodes.
-            </summary>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Int64,System.IO.Stream)">
-            <summary>
-            Broadcast stream data to all nodes.
-            </summary>
-            <param name="contentLength">The number of bytes to read from the stream.</param>
-            <param name="stream">The stream containing the data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Collections.Generic.Dictionary{System.Object,System.Object},System.Int64,System.IO.Stream)">
-            <summary>
-            Broadcast stream data to all nodes.
-            </summary>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="contentLength">The number of bytes to read from the stream.</param>
-            <param name="stream">The stream containing the data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.BroadcastAsync(System.String)">
+        <member name="M:WatsonMesh.MeshNode.Broadcast(System.String,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
             <summary>
             Broadcast string data to all nodes asynchronously.
             </summary>
             <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.BroadcastAsync(System.Collections.Generic.Dictionary{System.Object,System.Object},System.String)">
-            <summary>
-            Broadcast string data to all nodes asynchronously.
-            </summary>
             <param name="metadata">Metadata to include with the message.</param>
-            <param name="data">Data.</param>
+            <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.BroadcastAsync(System.Byte[])">
+        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Byte[],System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
             <summary>
             Broadcast byte data to all nodes asynchronously.
             </summary>
             <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.BroadcastAsync(System.Collections.Generic.Dictionary{System.Object,System.Object},System.Byte[])">
-            <summary>
-            Broadcast byte data to all nodes asynchronously.
-            </summary>
             <param name="metadata">Metadata to include with the message.</param>
-            <param name="data">Data.</param>
+            <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.BroadcastAsync(System.Int64,System.IO.Stream)">
+        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.Object,System.Object},System.Threading.CancellationToken)">
             <summary>
             Broadcast stream data to all nodes asynchronously.
             </summary>
             <param name="contentLength">The number of bytes to read from the stream.</param>
             <param name="stream">The stream containing the data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.BroadcastAsync(System.Collections.Generic.Dictionary{System.Object,System.Object},System.Int64,System.IO.Stream)">
-            <summary>
-            Broadcast stream data to all nodes asynchronously.
-            </summary>
             <param name="metadata">Metadata to include with the message.</param>
-            <param name="contentLength">The number of bytes to read from the stream.</param>
-            <param name="stream">The stream containing the data.</param>
+            <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.DisconnectClient(System.String)">
-            <summary>
-            Disconnect a remote client.
-            </summary>
-            <param name="ipPort">Peer IP address and port, of the form IP:port.</param>
         </member>
         <member name="T:WatsonMesh.MeshPeer">
             <summary>
             A peer WatsonMesh node.
             </summary>
         </member>
-        <member name="P:WatsonMesh.MeshPeer.GUID">
+        <member name="P:WatsonMesh.MeshPeer.Guid">
             <summary>
             GUID.
             </summary>
@@ -504,25 +331,12 @@
             Password for PFX SSL certificate file.
             </summary>
         </member>
-        <member name="M:WatsonMesh.MeshPeer.#ctor(System.String)">
-            <summary>
-            Instantiate the object.  Call 'Connect()' method after instantiating and assigning values.  
-            This constructor does not support SSL certificate files or passwords.
-            </summary> 
-            <param name="ipPort">IP address of the peer and port, of the form IP:port.  You can only use 127.0.0.1 or an IP address assigned to one of your interfaces.</param>
-        </member>
-        <member name="M:WatsonMesh.MeshPeer.#ctor(System.String,System.Boolean)">
-            <summary>
-            Instantiate the object.  Call 'Connect()' method after instantiating and assigning values.  This constructor supports SSL, but does not support SSL certificate files or passwords.
-            </summary> 
-            <param name="ipPort">IP address of the peer and port, of the form IP:port.</param>
-            <param name="ssl">True if using SSL.</param>
-        </member>
-        <member name="M:WatsonMesh.MeshPeer.#ctor(System.String,System.Boolean,System.String,System.String)">
+        <member name="M:WatsonMesh.MeshPeer.#ctor(System.Guid,System.String,System.Boolean,System.String,System.String)">
             <summary>
             Instantiate the object.  Call 'Connect()' method after instantiating and assigning values.
             </summary> 
-            <param name="ipPort">IP address of the peer and port, of the form IP:port.</param>
+            <param name="guid">GUID of the peer.</param>
+            <param name="ipPort">IP address and port of the peer server, of the form IP:port.</param>
             <param name="ssl">True if using SSL.</param>
             <param name="pfxCertFile">PFX SSL certificate path and filename.</param>
             <param name="pfxCertPass">Password for PFX SSL certificate file.</param>
@@ -573,6 +387,11 @@
             Buffer size to use when reading input and output streams.  Default is 65536.
             </summary>
         </member>
+        <member name="P:WatsonMesh.MeshSettings.Guid">
+            <summary>
+            GUID for the mesh node.
+            </summary>
+        </member>
         <member name="M:WatsonMesh.MeshSettings.#ctor">
             <summary>
             Instantiate the object.
@@ -618,9 +437,19 @@
             The sender's server IP:port.
             </summary>
         </member>
+        <member name="P:WatsonMesh.MessageReceivedEventArgs.SourceGuid">
+            <summary>
+            The sender's GUID.
+            </summary>
+        </member>
         <member name="P:WatsonMesh.MessageReceivedEventArgs.DestinationIpPort">
             <summary>
             The receiver's server IP:port.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MessageReceivedEventArgs.DestinationGuid">
+            <summary>
+            The receiver's GUID.
             </summary>
         </member>
         <member name="P:WatsonMesh.MessageReceivedEventArgs.Type">
@@ -649,19 +478,9 @@
             Using Data will fully read the contents of DataStream.
             </summary>
         </member>
-        <member name="T:WatsonMesh.MessageType">
-            <summary>
-            The type of message.  Reserved for future use.
-            </summary> 
-        </member>
-        <member name="F:WatsonMesh.MessageType.Data">
-            <summary>
-            Application data.
-            </summary>
-        </member>
         <member name="T:WatsonMesh.MessageTypeEnum">
             <summary>
-            The type of message.  Reserved for future use.
+            The type of message.
             </summary> 
         </member>
         <member name="F:WatsonMesh.MessageTypeEnum.Data">
@@ -684,7 +503,7 @@
             Object encapsulating a response to a synchronous message.
             </summary>
         </member>
-        <member name="F:WatsonMesh.SyncResponse.Status">
+        <member name="P:WatsonMesh.SyncResponse.Status">
             <summary>
             Synchronous response status.
             </summary>
@@ -705,67 +524,32 @@
             Using Data will fully read the contents of DataStream.
             </summary>
         </member>
-        <member name="F:WatsonMesh.SyncResponse.Exception">
+        <member name="P:WatsonMesh.SyncResponse.Exception">
             <summary>
             Exception associated with failure, if applicable.
             </summary>
         </member>
-        <member name="M:WatsonMesh.SyncResponse.#ctor(WatsonMesh.SyncResponseStatus,System.String)">
+        <member name="M:WatsonMesh.SyncResponse.#ctor(WatsonMesh.SyncResponseStatusEnum,System.String)">
             <summary>
             Instantiate the object.
             </summary>
             <param name="status">Response status.</param>
             <param name="data">Data.</param>
         </member>
-        <member name="M:WatsonMesh.SyncResponse.#ctor(WatsonMesh.SyncResponseStatus,System.Byte[])">
+        <member name="M:WatsonMesh.SyncResponse.#ctor(WatsonMesh.SyncResponseStatusEnum,System.Byte[])">
             <summary>
             Instantiate the object.
             </summary>
             <param name="status">Response status.</param>
             <param name="data">Data.</param>
         </member>
-        <member name="M:WatsonMesh.SyncResponse.#ctor(WatsonMesh.SyncResponseStatus,System.Int64,System.IO.Stream)">
+        <member name="M:WatsonMesh.SyncResponse.#ctor(WatsonMesh.SyncResponseStatusEnum,System.Int64,System.IO.Stream)">
             <summary>
             Instantiate the object.
             </summary>
             <param name="status">Response status.</param>
             <param name="contentLength">Content length.</param>
             <param name="stream">Stream containing response data.  Will only be attached if contentLength is greater than zero.</param>
-        </member>
-        <member name="T:WatsonMesh.SyncResponseStatus">
-            <summary>
-            Status for synchronous response objects.
-            </summary>
-        </member>
-        <member name="F:WatsonMesh.SyncResponseStatus.Unknown">
-            <summary>
-            Unknown.
-            </summary>
-        </member>
-        <member name="F:WatsonMesh.SyncResponseStatus.Success">
-            <summary>
-            Success.
-            </summary>
-        </member>
-        <member name="F:WatsonMesh.SyncResponseStatus.SendFailure">
-            <summary>
-            Failure to send.
-            </summary>
-        </member>
-        <member name="F:WatsonMesh.SyncResponseStatus.Failed">
-            <summary>
-            Failed.
-            </summary>
-        </member>
-        <member name="F:WatsonMesh.SyncResponseStatus.Expired">
-            <summary>
-            Request expired or response arrived too late.
-            </summary>
-        </member>
-        <member name="F:WatsonMesh.SyncResponseStatus.PeerNotFound">
-            <summary>
-            Unable to find the requested peer.
-            </summary>
         </member>
         <member name="T:WatsonMesh.SyncResponseStatusEnum">
             <summary>
@@ -774,7 +558,7 @@
         </member>
         <member name="F:WatsonMesh.SyncResponseStatusEnum.Unknown">
             <summary>
-            Unknown.
+            Unknow
             </summary>
         </member>
         <member name="F:WatsonMesh.SyncResponseStatusEnum.Success">

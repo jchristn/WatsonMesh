@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Inputty" Version="1.0.10" />
+    <PackageReference Include="Inputty" Version="1.0.11" />
   </ItemGroup>
 
   <ItemGroup>

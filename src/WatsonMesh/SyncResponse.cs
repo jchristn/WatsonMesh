@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-
-namespace WatsonMesh
+﻿namespace WatsonMesh
 {
+    using System;
+    using System.IO;
+    using System.Text;
+
     /// <summary>
     /// Object encapsulating a response to a synchronous message.
     /// </summary>
@@ -15,7 +14,7 @@ namespace WatsonMesh
         /// <summary>
         /// Synchronous response status.
         /// </summary>
-        public SyncResponseStatus Status = SyncResponseStatus.Unknown;
+        public SyncResponseStatusEnum Status { get; set; } = SyncResponseStatusEnum.Unknown;
 
         /// <summary>
         /// Response data length.
@@ -59,7 +58,7 @@ namespace WatsonMesh
             {
                 if (_Data != null) return _Data;
                 if (ContentLength <= 0) return null;
-                _Data = Common.StreamToBytes(DataStream);
+                _Data = Common.StreamToBytes(DataStream).Result;
                 return _Data;
             }
         }
@@ -67,7 +66,7 @@ namespace WatsonMesh
         /// <summary>
         /// Exception associated with failure, if applicable.
         /// </summary>
-        public Exception Exception = null;
+        public Exception Exception { get; set; } = null;
 
         #endregion
 
@@ -90,7 +89,7 @@ namespace WatsonMesh
         /// </summary>
         /// <param name="status">Response status.</param>
         /// <param name="data">Data.</param>
-        public SyncResponse(SyncResponseStatus status, string data)
+        public SyncResponse(SyncResponseStatusEnum status, string data)
         {
             Status = status;
 
@@ -115,7 +114,7 @@ namespace WatsonMesh
         /// </summary>
         /// <param name="status">Response status.</param>
         /// <param name="data">Data.</param>
-        public SyncResponse(SyncResponseStatus status, byte[] data)
+        public SyncResponse(SyncResponseStatusEnum status, byte[] data)
         {
             Status = status;
 
@@ -141,7 +140,7 @@ namespace WatsonMesh
         /// <param name="status">Response status.</param>
         /// <param name="contentLength">Content length.</param>
         /// <param name="stream">Stream containing response data.  Will only be attached if contentLength is greater than zero.</param>
-        public SyncResponse(SyncResponseStatus status, long contentLength, Stream stream)
+        public SyncResponse(SyncResponseStatusEnum status, long contentLength, Stream stream)
         {
             Status = status; 
             _DataStream = stream;

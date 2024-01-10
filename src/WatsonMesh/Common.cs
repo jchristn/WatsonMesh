@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Security;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-
-namespace WatsonMesh
+﻿namespace WatsonMesh
 {
+    using System;
+    using System.IO;
+    using System.Security.Cryptography;
+    using System.Text;
+    using System.Threading.Tasks;
+
     /// <summary>
     /// Commonly-used static methods.
     /// </summary>
@@ -75,7 +71,7 @@ namespace WatsonMesh
             }
         }
 
-        internal static byte[] ReadStream(long contentLength, Stream stream)
+        internal static async Task<byte[]> ReadStream(long contentLength, Stream stream)
         {
             if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero.");
             if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -88,7 +84,7 @@ namespace WatsonMesh
 
             while (bytesRemaining > 0)
             {
-                bytesRead = stream.Read(buffer, 0, buffer.Length);
+                bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                 if (bytesRead > 0)
                 {
                     if (bytesRead == buffer.Length)
@@ -148,7 +144,7 @@ namespace WatsonMesh
             return bytes;
         }
 
-        internal static byte[] StreamToBytes(Stream input)
+        internal static async Task<byte[]> StreamToBytes(Stream input)
         {
             if (input == null) throw new ArgumentNullException(nameof(input));
             if (!input.CanRead) throw new InvalidOperationException("Input stream is not readable");
@@ -158,9 +154,9 @@ namespace WatsonMesh
             {
                 int read;
 
-                while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+                while ((read = await input.ReadAsync(buffer, 0, buffer.Length)) > 0)
                 {
-                    ms.Write(buffer, 0, read);
+                    await ms.WriteAsync(buffer, 0, read);
                 }
 
                 return ms.ToArray();

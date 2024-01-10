@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-
-namespace WatsonMesh
+﻿namespace WatsonMesh
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+
     /// <summary>
     /// Event arguments passed when a message is received.
     /// </summary>
@@ -15,42 +14,52 @@ namespace WatsonMesh
         /// <summary>
         /// Unique ID for the message. 
         /// </summary>
-        public string Id { get; }
+        public string Id { get; set; } = null;
 
         /// <summary>
         /// Indicates if the message is a broadcast.
         /// </summary>
-        public bool IsBroadcast { get; }
+        public bool IsBroadcast { get; set; } = false;
 
         /// <summary>
         /// Indicates if the message is a synchronous message request.
         /// </summary>
-        public bool SyncRequest { get; }
+        public bool SyncRequest { get; set; } = false;
 
         /// <summary>
         /// Indicates if the message is a response to a synchronous message request.
         /// </summary>
-        public bool SyncResponse { get; }
+        public bool SyncResponse { get; set; } = false;
 
         /// <summary>
         /// For synchronous requests or responses, the number of milliseconds before the message expires.
         /// </summary>
-        public int TimeoutMs { get; }
+        public int TimeoutMs { get; set; } = 0;
 
         /// <summary>
         /// The sender's server IP:port.
         /// </summary>
-        public string SourceIpPort { get; }
+        public string SourceIpPort { get; set; } = null;
+
+        /// <summary>
+        /// The sender's GUID.
+        /// </summary>
+        public Guid SourceGuid { get; set; } = default(Guid);
 
         /// <summary>
         /// The receiver's server IP:port.
         /// </summary>
-        public string DestinationIpPort { get; }
+        public string DestinationIpPort { get; set; } = null;
+
+        /// <summary>
+        /// The receiver's GUID.
+        /// </summary>
+        public Guid DestinationGuid { get; set; } = default(Guid);
 
         /// <summary>
         /// The type of message being sent.
         /// </summary>
-        public MessageType Type { get; }
+        public MessageTypeEnum Type { get; set; } = MessageTypeEnum.Data;
 
         /// <summary>
         /// Dictionary containing metadata to include with the message.
@@ -71,12 +80,12 @@ namespace WatsonMesh
         /// <summary>
         /// Content length of the data.
         /// </summary>
-        public long ContentLength { get; }
+        public long ContentLength { get; set; } = 0;
 
         /// <summary>
         /// The stream containing the data being transmitted.
         /// </summary>
-        public Stream DataStream { get; }
+        public Stream DataStream { get; set; } = null;
 
         /// <summary>
         /// The data from DataStream.
@@ -88,7 +97,7 @@ namespace WatsonMesh
             {
                 if (_Data != null) return _Data;
                 if (ContentLength <= 0) return null;
-                _Data = Common.StreamToBytes(DataStream);
+                _Data = Common.StreamToBytes(DataStream).Result;
                 return _Data;
             }
         }
@@ -112,7 +121,9 @@ namespace WatsonMesh
             SyncResponse = msg.SyncResponse;
             TimeoutMs = msg.TimeoutMs;
             SourceIpPort = msg.SourceIpPort;
+            SourceGuid = msg.SourceGuid;
             DestinationIpPort = msg.DestinationIpPort;
+            DestinationGuid = msg.DestinationGuid;
             Type = msg.Type;
             Metadata = msg.Metadata;
             ContentLength = msg.ContentLength;

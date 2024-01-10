@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WatsonMesh", "WatsonMesh\Wa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test", "Test\Test.csproj", "{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WatsonMesh.Test", "WatsonMesh.test\WatsonMesh.Test.csproj", "{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,10 +21,6 @@ Global
 		{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0C79EBE9-0A42-4EB9-97E0-831BA27C29B4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{386F3D7C-CA1D-471D-8C38-BC5F7D008EA4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
