@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -304,7 +305,12 @@ namespace TestNetCore
          
         static void MessageReceived(object sender, MeshMessageReceivedEventArgs args) 
         {
-            Console.WriteLine(args.SourceIpPort + ": " + Encoding.UTF8.GetString(args.Data));
+            string msg = "";
+            if (args.IsBroadcast) msg = "[bcast] ";
+            else if (args.SyncRequest) msg = "[syncreq] ";
+            else if (args.SyncResponse) msg = "[syncresp] ";
+
+            msg += args.SourceIpPort + ": " + Encoding.UTF8.GetString(args.Data);
             if (args.Metadata != null && args.Metadata.Count > 0)
             {
                 Console.WriteLine("Metadata:");
