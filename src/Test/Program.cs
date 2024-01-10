@@ -235,23 +235,9 @@ namespace TestNetCore
             if (resp != null)
             {
                 Console.WriteLine("Status: " + resp.Status.ToString());
-                if (resp.ContentLength > 0)
+                if (resp.Data != null)
                 {
-                    if (resp.DataStream != null)
-                    {
-                        if (resp.DataStream.CanRead)
-                        {
-                            Console.WriteLine("Response: " + Encoding.UTF8.GetString(ReadStream(resp.ContentLength, resp.DataStream)));
-                        }
-                        else
-                        {
-                            Console.WriteLine("Cannot read from response stream");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Response stream is null");
-                    }
+                    Console.WriteLine("Response: " + Encoding.UTF8.GetString(resp.Data));
                 }
                 else
                 {
@@ -279,23 +265,9 @@ namespace TestNetCore
             if (resp != null)
             {
                 Console.WriteLine("Status: " + resp.Status.ToString());
-                if (resp.ContentLength > 0)
+                if (resp.Data != null)
                 {
-                    if (resp.DataStream != null)
-                    {
-                        if (resp.DataStream.CanRead)
-                        {
-                            Console.WriteLine("Response: " + Encoding.UTF8.GetString(ReadStream(resp.ContentLength, resp.DataStream)));
-                        }
-                        else
-                        {
-                            Console.WriteLine("Cannot read from response stream");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Response stream is null");
-                    }
+                    Console.WriteLine("Response: " + Encoding.UTF8.GetString(resp.Data));
                 }
                 else
                 {
@@ -331,9 +303,9 @@ namespace TestNetCore
             Console.WriteLine("Peer " + args.PeerNode.Guid + " " + args.PeerNode.IpPort + " disconnected"); 
         }
          
-        static void MessageReceived(object sender, MessageReceivedEventArgs args) 
+        static void MessageReceived(object sender, MeshMessageReceivedEventArgs args) 
         {
-            Console.WriteLine(args.SourceIpPort + " " + args.ContentLength + " bytes: " + Encoding.UTF8.GetString(args.Data));
+            Console.WriteLine(args.SourceIpPort + ": " + Encoding.UTF8.GetString(args.Data));
             if (args.Metadata != null && args.Metadata.Count > 0)
             {
                 Console.WriteLine("Metadata:");
@@ -345,10 +317,10 @@ namespace TestNetCore
         }
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task<SyncResponse> SyncMessageReceived(MessageReceivedEventArgs args)
+        static async Task<SyncResponse> SyncMessageReceived(MeshMessageReceivedEventArgs args)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            Console.WriteLine("[sync] " + args.SourceIpPort + " " + args.ContentLength + " bytes: " + Encoding.UTF8.GetString(args.Data));
+            Console.WriteLine("[sync] " + args.SourceIpPort + ": " + Encoding.UTF8.GetString(args.Data));
             if (args.Metadata != null && args.Metadata.Count > 0)
             {
                 Console.WriteLine("Metadata:");
@@ -357,13 +329,12 @@ namespace TestNetCore
                     Console.WriteLine("  " + curr.Key.ToString() + ": " + curr.Value.ToString());
                 }
             }
+
             Console.WriteLine("");
             Console.WriteLine("Sending synchronous response...");
             string resp = "Thank you for your synchronous inquiry!";
             byte[] respData = Encoding.UTF8.GetBytes(resp);
-            MemoryStream ms = new MemoryStream(respData);
-            ms.Seek(0, SeekOrigin.Begin);
-            return new SyncResponse(SyncResponseStatusEnum.Success, respData.Length, ms);
+            return new SyncResponse(SyncResponseStatusEnum.Success, respData);
         } 
 
         static void ParseIpPort(string ipPort, out string ip, out int port)

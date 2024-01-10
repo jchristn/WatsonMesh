@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Net;
     using System.Net.Sockets;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using WatsonTcp;
@@ -14,7 +15,7 @@
 
         internal event EventHandler<ClientConnectionEventArgs> ClientConnected;
         internal event EventHandler<ClientConnectionEventArgs> ClientDisconnected;
-        internal event EventHandler<MessageReceivedEventArgs> MessageReceived;
+        internal event EventHandler<MeshMessageReceivedEventArgs> MessageReceived;
         internal Action<string> Logger = null;
 
         #endregion
@@ -122,7 +123,7 @@
 
             _TcpServer.Events.ClientConnected += MeshServerClientConnected;
             _TcpServer.Events.ClientDisconnected += MeshServerClientDisconnected;
-            _TcpServer.Events.StreamReceived += MeshServerStreamReceived;
+            _TcpServer.Events.MessageReceived += MeshServerMessageReceived;
 
             _TcpServer.Start();
 
@@ -166,11 +167,11 @@
             ClientDisconnected?.Invoke(this, new ClientConnectionEventArgs(args.Client.Guid, args.Client.IpPort));
         }
 
-        private void MeshServerStreamReceived(object sender, StreamReceivedEventArgs args)
+        private void MeshServerMessageReceived(object sender, WatsonTcp.MessageReceivedEventArgs args)
         {
-            Logger?.Invoke(_Header + "message from client " + args.Client.Guid + " " + args.Client.IpPort + ": " + args.ContentLength + " bytes");
+            Logger?.Invoke(_Header + "message from client " + args.Client.Guid + " " + args.Client.IpPort + ": " + args.Data.Length + " bytes");
 
-            MessageReceivedEventArgs msg = new MessageReceivedEventArgs(args, _IpPort, _Settings.Guid);
+            MeshMessageReceivedEventArgs msg = new MeshMessageReceivedEventArgs(args, _IpPort, _Settings.Guid);
 
             MessageReceived?.Invoke(this, msg);
         }

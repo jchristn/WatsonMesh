@@ -37,16 +37,24 @@
             }
         }
          
-        internal long ContentLength { get; set; } 
-        internal Stream DataStream { get; set; } 
-        internal byte[] Data
+        internal byte[] Data { get; set; } = null;
+
+        internal Dictionary<string, object> Headers
         {
             get
-            { 
-                if (_Data != null) return _Data;
-                if (ContentLength <= 0) return null;
-                _Data = Common.StreamToBytes(DataStream).Result;
-                return _Data;
+            {
+                Dictionary<string, object> ret = new Dictionary<string, object>();
+                ret.Add("X-Id", Id);
+                ret.Add("X-IsBroadcast", IsBroadcast);
+                ret.Add("X-SyncRequest", SyncRequest);
+                ret.Add("X-SyncResponse", SyncResponse);
+                ret.Add("X-TimeoutMs", TimeoutMs);
+                ret.Add("X-SourceIpPort", SourceIpPort);
+                ret.Add("X-SourceGuid", SourceGuid);
+                ret.Add("X-DestinationIpPort", DestinationIpPort);
+                ret.Add("X-DestinationGuid", DestinationGuid);
+                ret.Add("X-Type", Type.ToString());
+                return ret;
             }
         }
 
@@ -54,21 +62,13 @@
 
         #region Private-Members
 
-        private ISerializationHelper _Serializer = new DefaultSerializationHelper();
         private Dictionary<string, object> _Metadata = new Dictionary<string, object>();
-        private byte[] _Data = null;
 
         #endregion
 
         #region Constructors-and-Factories
 
-        private Message()
-        {
-
-        }
-         
         internal Message(
-            ISerializationHelper serializer,
             string sourceIpPort, 
             string destIpPort, 
             int? timeoutMs, 
@@ -76,18 +76,13 @@
             bool syncRequest, 
             bool syncResponse, 
             MessageTypeEnum msgType, 
-            Dictionary<string, object> metadata, 
-            long contentLength, 
-            Stream stream)
+            Dictionary<string, object> metadata,
+            byte[] data)
         {
-            if (serializer == null) throw new ArgumentNullException(nameof(serializer));
             if (String.IsNullOrEmpty(sourceIpPort)) throw new ArgumentNullException(nameof(sourceIpPort)); 
-            if (String.IsNullOrEmpty(destIpPort)) throw new ArgumentNullException(nameof(destIpPort)); 
-            if (contentLength < 1) throw new ArgumentException("Content length must be at least one byte.");
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
+            if (String.IsNullOrEmpty(destIpPort)) throw new ArgumentNullException(nameof(destIpPort));
+            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
 
-            _Serializer = serializer;
             Id = Guid.NewGuid().ToString();
             IsBroadcast = isBroadcast;
             SyncRequest = syncRequest;
@@ -105,61 +100,26 @@
             Type = msgType;
 
             Metadata = metadata;
-            ContentLength = contentLength; 
-            DataStream = stream;
-            DataStream.Seek(0, SeekOrigin.Begin);
+            Data = data;
         }
-         
-        internal Message(Stream stream, int bufferLen)
+
+        internal Message(MeshMessageReceivedEventArgs args)
         {
-            if (stream == null || !stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
-            if (bufferLen < 1) throw new ArgumentException("Buffer length must be greater than zero.");
+            if (args == null) throw new ArgumentNullException(nameof(args));
 
-            string header = "";  
-            int bytesRead = 0;
-            byte[] buffer = new byte[1];
-
-            while (true)
+            if (args.Metadata != null && args.Metadata.Count > 0)
             {
-                bytesRead = stream.Read(buffer, 0, buffer.Length);
-                header += Convert.ToChar(buffer[0]);
-                if (header.EndsWith("\r\n\r\n"))
+                foreach (KeyValuePair<string, object> curr in args.Metadata)
                 {
-                    break;
-                }
-            }
-             
-            string[] headerVals = header.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
-             
-            foreach (string curr in headerVals)
-            {
-                if (!String.IsNullOrEmpty(curr)) curr.TrimEnd(Environment.NewLine.ToCharArray());
-                if (!String.IsNullOrEmpty(curr)) curr.Trim();
-                if (String.IsNullOrEmpty(curr)) continue;
+                    string key = curr.Key;
+                    object val = curr.Value;
 
-                string[] currHeader = curr.Split(':');
-
-                string key = "";
-                string val = "";
-
-                if (currHeader.Length >= 2)
-                {
-                    key = currHeader[0];
-                    val = currHeader[1].TrimStart().TrimEnd();
-
-                    // catch anything with ':' in the value, for instance, IPv6 addresses
-                    if (currHeader.Length > 2)
-                    {
-                        for (int i = 2; i < currHeader.Length; i++)
-                        {
-                            val += ":" + currHeader[i];
-                        }
-                    }
+                    if (!String.IsNullOrEmpty(key)) key = curr.Key.Trim();
 
                     switch (key)
                     {
                         case "Id":
-                            Id = val;
+                            Id = val.ToString();
                             break;
                         case "IsBroadcast":
                             IsBroadcast = Convert.ToBoolean(val);
@@ -174,19 +134,22 @@
                             TimeoutMs = Convert.ToInt32(val);
                             break;
                         case "SourceIpPort":
-                            SourceIpPort = val;
-                            break; 
+                            SourceIpPort = val.ToString();
+                            break;
+                        case "SourceGuid":
+                            SourceGuid = Guid.Parse(val.ToString());
+                            break;
                         case "DestinationIpPort":
-                            DestinationIpPort = val;
+                            DestinationIpPort = val.ToString();
+                            break;
+                        case "DestinationGuid":
+                            DestinationGuid = Guid.Parse(val.ToString());
                             break;
                         case "Type":
-                            Type = (MessageTypeEnum)(Enum.Parse(typeof(MessageTypeEnum), val));
+                            Type = (MessageTypeEnum)(Enum.Parse(typeof(MessageTypeEnum), val.ToString()));
                             break;
                         case "Metadata":
-                            Metadata = _Serializer.DeserializeJson<Dictionary<string, object>>(val);
-                            break;
-                        case "ContentLength":
-                            ContentLength = Convert.ToInt64(val);
+                            Metadata = SerializationHelper.DeserializeJson<Dictionary<string, object>>(val.ToString());
                             break;
 
                         default:
@@ -194,27 +157,14 @@
                     }
                 }
             }
-             
-            DataStream = new MemoryStream();
-            long bytesRemaining = ContentLength;
-            buffer = new byte[bufferLen];
-            while (bytesRemaining > 0)
-            {
-                bytesRead = stream.Read(buffer, 0, buffer.Length);
-                if (bytesRead > 0)
-                {
-                    DataStream.Write(buffer, 0, bytesRead);
-                    bytesRemaining -= bytesRead;
-                }
-            }
 
-            DataStream.Seek(0, SeekOrigin.Begin); 
+            Data = args.Data;
         }
 
         #endregion
 
         #region Internal-Methods
-         
+
         internal byte[] ToHeaderBytes()
         { 
             string header = "";
@@ -227,8 +177,7 @@
             header += "SourceIpPort: " + SourceIpPort + Environment.NewLine;
             header += "DestinationIpPort: " + DestinationIpPort + Environment.NewLine;
             header += "Type: " + Type.ToString() + Environment.NewLine;
-            header += "Metadata: " + _Serializer.SerializeJson(Metadata, false) + Environment.NewLine;
-            header += "ContentLength: " + ContentLength.ToString() + Environment.NewLine;
+            header += "Metadata: " + SerializationHelper.SerializeJson(Metadata, false) + Environment.NewLine;
             header += Environment.NewLine;
 
             return Encoding.UTF8.GetBytes(header); 

@@ -31,37 +31,6 @@
             Commonly-used static methods.
             </summary>
         </member>
-        <member name="T:WatsonMesh.DefaultSerializationHelper">
-            <summary>
-            Default serialization helper.
-            </summary>
-        </member>
-        <member name="M:WatsonMesh.DefaultSerializationHelper.#ctor">
-            <summary>
-            Instantiate.
-            </summary>
-        </member>
-        <member name="M:WatsonMesh.DefaultSerializationHelper.DeserializeJson``1(System.String)">
-            <summary>
-            Deserialize JSON to an instance.
-            </summary>
-            <typeparam name="T">Type.</typeparam>
-            <param name="json">JSON string.</param>
-            <returns>Instance.</returns>
-        </member>
-        <member name="M:WatsonMesh.DefaultSerializationHelper.SerializeJson(System.Object,System.Boolean)">
-            <summary>
-            Serialize object to JSON.
-            </summary>
-            <param name="obj">Object.</param>
-            <param name="pretty">Pretty print.</param>
-            <returns>JSON.</returns>
-        </member>
-        <member name="M:WatsonMesh.DefaultSerializationHelper.InstantiateConverter">
-            <summary>
-            Instantiation method to support fixups for various environments, e.g. Unity.
-            </summary>
-        </member>
         <member name="T:WatsonMesh.ISerializationHelper">
             <summary>
             Serialization helper.
@@ -92,6 +61,79 @@
             <summary>
             Tear down the client and dispose of background workers.
             </summary>
+        </member>
+        <member name="T:WatsonMesh.MeshMessageReceivedEventArgs">
+            <summary>
+            Event arguments passed when a message is received.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.Id">
+            <summary>
+            Unique ID for the message. 
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.IsBroadcast">
+            <summary>
+            Indicates if the message is a broadcast.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.SyncRequest">
+            <summary>
+            Indicates if the message is a synchronous message request.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.SyncResponse">
+            <summary>
+            Indicates if the message is a response to a synchronous message request.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.TimeoutMs">
+            <summary>
+            For synchronous requests or responses, the number of milliseconds before the message expires.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.SourceIpPort">
+            <summary>
+            The sender's server IP:port.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.SourceGuid">
+            <summary>
+            The sender's GUID.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.DestinationIpPort">
+            <summary>
+            The receiver's server IP:port.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.DestinationGuid">
+            <summary>
+            The receiver's GUID.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.Type">
+            <summary>
+            The type of message being sent.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.Metadata">
+            <summary>
+            Dictionary containing metadata to include with the message.
+            </summary>
+        </member>
+        <member name="P:WatsonMesh.MeshMessageReceivedEventArgs.Data">
+            <summary>
+            Data.
+            </summary>
+        </member>
+        <member name="M:WatsonMesh.MeshMessageReceivedEventArgs.#ctor(WatsonTcp.MessageReceivedEventArgs,System.String,System.Guid)">
+            <summary>
+            Instantiate.
+            </summary>
+            <param name="args">Watson TCP message received event arguments.</param>
+            <param name="localIpPort">Local IP port.</param>
+            <param name="localGuid">Local GUID.</param>
         </member>
         <member name="T:WatsonMesh.MeshNode">
             <summary>
@@ -129,11 +171,6 @@
         <member name="F:WatsonMesh.MeshNode.Logger">
             <summary>
             Function to invoke when sending log messages.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MeshNode.Serializer">
-            <summary>
-            Serializer.
             </summary>
         </member>
         <member name="M:WatsonMesh.MeshNode.#ctor(WatsonMesh.MeshSettings,System.String,System.Int32,System.Boolean,System.String,System.String)">
@@ -218,17 +255,6 @@
             <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.Send(System.Guid,System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
-            <summary>
-            Send byte data to a peer asynchronously using a stream.
-            </summary>
-            <param name="guid">GUID of the peer.</param>
-            <param name="contentLength">The number of bytes to read from the stream.</param>
-            <param name="stream">The stream containing the data.</param>
-            <param name="metadata">Metadata dictionary.</param>
-            <param name="token">Cancellation token.</param>
-            <returns>True if successful.</returns>
-        </member>
         <member name="M:WatsonMesh.MeshNode.SendAndWait(System.Guid,System.Int32,System.String,System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
             <summary>
             Send string data to a peer and wait for a response for the specified timeout duration.
@@ -251,18 +277,6 @@
             <param name="token">Cancellation token.</param>
             <returns>SyncResponse.</returns>
         </member>
-        <member name="M:WatsonMesh.MeshNode.SendAndWait(System.Guid,System.Int32,System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
-            <summary>
-            Send stream data to a peer and wait for a response for the specified timeout duration.
-            </summary>
-            <param name="guid">GUID of the peer.</param>
-            <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
-            <param name="contentLength">The number of bytes to read from the stream.</param>
-            <param name="stream">The stream containing the data.</param>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="token">Cancellation token.</param>
-            <returns>SyncResponse.</returns>
-        </member>
         <member name="M:WatsonMesh.MeshNode.Broadcast(System.String,System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
             <summary>
             Broadcast string data to all nodes asynchronously.
@@ -277,16 +291,6 @@
             Broadcast byte data to all nodes asynchronously.
             </summary>
             <param name="data">Data.</param>
-            <param name="metadata">Metadata to include with the message.</param>
-            <param name="token">Cancellation token.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:WatsonMesh.MeshNode.Broadcast(System.Int64,System.IO.Stream,System.Collections.Generic.Dictionary{System.String,System.Object},System.Threading.CancellationToken)">
-            <summary>
-            Broadcast stream data to all nodes asynchronously.
-            </summary>
-            <param name="contentLength">The number of bytes to read from the stream.</param>
-            <param name="stream">The stream containing the data.</param>
             <param name="metadata">Metadata to include with the message.</param>
             <param name="token">Cancellation token.</param>
             <returns>True if successful.</returns>
@@ -402,77 +406,6 @@
             Message object, exchanged between peers in the mesh network.
             </summary>
         </member>
-        <member name="T:WatsonMesh.MessageReceivedEventArgs">
-            <summary>
-            Event arguments passed when a message is received.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.Id">
-            <summary>
-            Unique ID for the message. 
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.SyncRequest">
-            <summary>
-            Indicates if the message is a synchronous message request.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.SyncResponse">
-            <summary>
-            Indicates if the message is a response to a synchronous message request.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.TimeoutMs">
-            <summary>
-            For synchronous requests or responses, the number of milliseconds before the message expires.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.SourceIpPort">
-            <summary>
-            The sender's server IP:port.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.SourceGuid">
-            <summary>
-            The sender's GUID.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.DestinationIpPort">
-            <summary>
-            The receiver's server IP:port.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.DestinationGuid">
-            <summary>
-            The receiver's GUID.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.Type">
-            <summary>
-            The type of message being sent.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.Metadata">
-            <summary>
-            Dictionary containing metadata to include with the message.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.ContentLength">
-            <summary>
-            Content length of the data.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.DataStream">
-            <summary>
-            The stream containing the data being transmitted.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.MessageReceivedEventArgs.Data">
-            <summary>
-            The data from DataStream.
-            Using Data will fully read the contents of DataStream.
-            </summary>
-        </member>
         <member name="T:WatsonMesh.MessageTypeEnum">
             <summary>
             The type of message.
@@ -482,6 +415,40 @@
             <summary>
             Application data.
             </summary>
+        </member>
+        <member name="T:WatsonMesh.SerializationHelper">
+            <summary>
+            Default serialization helper.
+            </summary>
+        </member>
+        <member name="M:WatsonMesh.SerializationHelper.InstantiateConverter">
+            <summary>
+            Instantiation method to support fixups for various environments, e.g. Unity.
+            </summary>
+        </member>
+        <member name="M:WatsonMesh.SerializationHelper.DeserializeJson``1(System.String)">
+            <summary>
+            Deserialize JSON to an instance.
+            </summary>
+            <typeparam name="T">Type.</typeparam>
+            <param name="json">JSON string.</param>
+            <returns>Instance.</returns>
+        </member>
+        <member name="M:WatsonMesh.SerializationHelper.SerializeJson(System.Object,System.Boolean)">
+            <summary>
+            Serialize object to JSON.
+            </summary>
+            <param name="obj">Object.</param>
+            <param name="pretty">Pretty print.</param>
+            <returns>JSON.</returns>
+        </member>
+        <member name="M:WatsonMesh.SerializationHelper.CopyObject``1(System.Object)">
+            <summary>
+            Copy an object.
+            </summary>
+            <typeparam name="T">Type.</typeparam>
+            <param name="o">Object.</param>
+            <returns>Instance.</returns>
         </member>
         <member name="T:WatsonMesh.ServerConnectionEventArgs">
             <summary>
@@ -503,20 +470,9 @@
             Synchronous response status.
             </summary>
         </member>
-        <member name="P:WatsonMesh.SyncResponse.ContentLength">
-            <summary>
-            Response data length.
-            </summary>
-        </member>
-        <member name="P:WatsonMesh.SyncResponse.DataStream">
-            <summary>
-            Stream containing response data.  Set ContentLength first.
-            </summary>
-        </member>
         <member name="P:WatsonMesh.SyncResponse.Data">
             <summary>
-            The data from DataStream.
-            Using Data will fully read the contents of DataStream.
+            Data.
             </summary>
         </member>
         <member name="P:WatsonMesh.SyncResponse.Exception">
@@ -537,14 +493,6 @@
             </summary>
             <param name="status">Response status.</param>
             <param name="data">Data.</param>
-        </member>
-        <member name="M:WatsonMesh.SyncResponse.#ctor(WatsonMesh.SyncResponseStatusEnum,System.Int64,System.IO.Stream)">
-            <summary>
-            Instantiate the object.
-            </summary>
-            <param name="status">Response status.</param>
-            <param name="contentLength">Content length.</param>
-            <param name="stream">Stream containing response data.  Will only be attached if contentLength is greater than zero.</param>
         </member>
         <member name="T:WatsonMesh.SyncResponseStatusEnum">
             <summary>

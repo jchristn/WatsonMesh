@@ -1,6 +1,7 @@
 ﻿namespace WatsonMesh
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Net.Sockets;
     using System.Security.Authentication;
@@ -37,20 +38,17 @@
         private bool _Disposed = false; 
         private MeshSettings _Settings; 
         private WatsonTcpClient _TcpClient;
-        private ISerializationHelper _Serializer = new DefaultSerializationHelper();
-
+        
         #endregion
 
         #region Constructors-and-Factories
          
-        internal MeshClient(MeshSettings settings, MeshPeer peer, ISerializationHelper serializer)
+        internal MeshClient(MeshSettings settings, MeshPeer peer)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings)); 
             if (peer == null) throw new ArgumentNullException(nameof(peer));
-            if (serializer == null) throw new ArgumentNullException(nameof(serializer));
 
             _Settings = settings;
-            _Serializer = serializer;
 
             PeerNode = peer;
             
@@ -106,7 +104,7 @@
             _TcpClient.Events.AuthenticationFailure += MeshClientAuthenticationFailure;
             _TcpClient.Events.ServerConnected += MeshClientServerConnected;
             _TcpClient.Events.ServerDisconnected += MeshClientServerDisconnected;
-            _TcpClient.Events.StreamReceived += MeshClientStreamReceived;
+            _TcpClient.Events.MessageReceived += MeshClientMessageReceived;
 
             try
             {
@@ -119,7 +117,7 @@
             }
             catch (Exception e)
             {
-                Logger?.Invoke(_Header + "client exception: " + Environment.NewLine + _Serializer.SerializeJson(e, true));
+                Logger?.Invoke(_Header + "client exception: " + Environment.NewLine + SerializationHelper.SerializeJson(e, true));
                 Task unawaited = Task.Run(() => ReconnectToServer());
                 ServerDisconnected?.Invoke(this, new ServerConnectionEventArgs(PeerNode));
             } 
@@ -127,19 +125,17 @@
             Logger?.Invoke(_Header + "client started");
         }
         
-        internal async Task<bool> SendAsync(long contentLength, Stream stream, CancellationToken token = default)
+        internal async Task<bool> Send(byte[] data, Dictionary<string, object> headers, CancellationToken token = default)
         {
-            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero.");
-            if (stream == null || !stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
+            if (data == null) data = Array.Empty<byte>();
              
             try
-            { 
-                stream.Seek(0, SeekOrigin.Begin);
-                return await _TcpClient.SendAsync(contentLength, stream, null, token).ConfigureAwait(false);
+            {
+                return await _TcpClient.SendAsync(data, headers, 0, token).ConfigureAwait(false);
             }
             catch (Exception e)
             {
-                Logger?.Invoke(_Header + "SendAsync exception: " + Environment.NewLine + _Serializer.SerializeJson(e, true));
+                Logger?.Invoke(_Header + "SendAsync exception: " + Environment.NewLine + SerializationHelper.SerializeJson(e, true));
                 return false;
             }
         }
@@ -196,9 +192,9 @@
             ServerDisconnected?.Invoke(this, new ServerConnectionEventArgs(PeerNode));
         }
          
-        private void MeshClientStreamReceived(object sender, StreamReceivedEventArgs args)
+        private void MeshClientMessageReceived(object sender, MessageReceivedEventArgs args)
         {
-            Logger?.Invoke(_Header + "unsolicited message from server " + PeerNode.IpPort + ": " + args.ContentLength + " bytes, ignoring");
+            Logger?.Invoke(_Header + "unsolicited message from server " + PeerNode.IpPort + ": " + args.Data.Length + " bytes, ignoring");
         }
 
         private async Task ReconnectToServer()

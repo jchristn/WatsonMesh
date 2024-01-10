@@ -53,41 +53,19 @@
         /// Event to fire when a message is received from a peer.
         /// Read .ContentLength bytes from .DataStream, or, use .Data which will read the stream fully.
         /// </summary>
-        public event EventHandler<MessageReceivedEventArgs> MessageReceived;
+        public event EventHandler<MeshMessageReceivedEventArgs> MessageReceived;
 
         /// <summary>
         /// Event to fire when a sync message is received from a peer and a response is expected.
         /// Read .ContentLength bytes from .DataStream, or, use .Data which will read the stream fully.
         /// Your function must return a SyncResponse object.
         /// </summary>
-        public Func<MessageReceivedEventArgs, Task<SyncResponse>> SyncMessageReceived;
+        public Func<MeshMessageReceivedEventArgs, Task<SyncResponse>> SyncMessageReceived;
 
         /// <summary>
         /// Function to invoke when sending log messages.
         /// </summary>
         public Action<string> Logger = null;
-
-        /// <summary>
-        /// Serializer.
-        /// </summary>
-        public ISerializationHelper Serializer
-        {
-            get
-            {
-                return _Serializer;
-            }
-            set
-            {
-                if (value == null)
-                {
-                    _Serializer = new DefaultSerializationHelper();
-                }
-                else
-                {
-                    _Serializer = value;
-                }
-            }
-        }
 
         #endregion
 
@@ -102,7 +80,6 @@
         private string _PfxCertificateFile = null;
         private string _PfxCertificatePass = null;
         private MeshServer _Server = null;
-        private ISerializationHelper _Serializer = new DefaultSerializationHelper();
 
         private readonly object _PeerLock = new object();
         private List<MeshPeer> _Peers = new List<MeshPeer>();
@@ -185,7 +162,7 @@
             _Server = new MeshServer(_Settings, _Ip, _Port, _Ssl, _PfxCertificateFile, _PfxCertificatePass);
             _Server.ClientConnected += MeshServerClientConnected;
             _Server.ClientDisconnected += MeshServerClientDisconnected; 
-            _Server.MessageReceived += MeshServerStreamReceived;
+            _Server.MessageReceived += MeshServerMessageReceived;
             _Server.Logger = Logger;
             _Server.Start(); 
         }
@@ -236,7 +213,7 @@
                 if (exists) return;
                 else
                 {
-                    MeshClient currClient = new MeshClient(_Settings, peer, _Serializer); 
+                    MeshClient currClient = new MeshClient(_Settings, peer); 
                     currClient.ServerConnected += MeshClientServerConnected;
                     currClient.ServerDisconnected += MeshClientServerDisconnected;
                     // currClient.MessageReceived += MeshClientStreamReceived;
@@ -346,31 +323,9 @@
         public async Task<bool> Send(Guid guid, byte[] data, Dictionary<string, object> metadata = null, CancellationToken token = default)
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-            MemoryStream stream = new MemoryStream();
-            stream.Write(data, 0, data.Length);
-            long contentLength = data.Length;
-            stream.Seek(0, SeekOrigin.Begin);
-            return await Send(guid, contentLength, stream, metadata, token).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Send byte data to a peer asynchronously using a stream.
-        /// </summary>
-        /// <param name="guid">GUID of the peer.</param>
-        /// <param name="contentLength">The number of bytes to read from the stream.</param>
-        /// <param name="stream">The stream containing the data.</param>
-        /// <param name="metadata">Metadata dictionary.</param>
-        /// <param name="token">Cancellation token.</param>
-        /// <returns>True if successful.</returns>
-        public async Task<bool> Send(Guid guid, long contentLength, Stream stream, Dictionary<string, object> metadata = null, CancellationToken token = default)
-        {
-            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanRead) throw new IOException("Cannot read from supplied stream.");
-
             MeshClient currClient = GetMeshClientByGuid(guid);
             if (currClient == null || currClient == default(MeshClient)) return false;
-            return await SendInternal(currClient, MessageTypeEnum.Data, contentLength, stream, metadata, token).ConfigureAwait(false);
+            return await SendInternal(currClient, MessageTypeEnum.Data, data, metadata, token).ConfigureAwait(false);
         }
 
         #endregion
@@ -406,38 +361,13 @@
         {
             if (timeoutMs < 1) throw new ArgumentException("Timeout must be greater than zero.");
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-            MemoryStream stream = new MemoryStream();
-            stream.Write(data, 0, data.Length);
-            long contentLength = data.Length; 
-            stream.Seek(0, SeekOrigin.Begin);
-            return await SendAndWait(guid, timeoutMs, contentLength, stream, metadata, token).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Send stream data to a peer and wait for a response for the specified timeout duration.
-        /// </summary>
-        /// <param name="guid">GUID of the peer.</param>
-        /// <param name="timeoutMs">Number of milliseconds to wait before considering the request expired.</param>
-        /// <param name="contentLength">The number of bytes to read from the stream.</param>
-        /// <param name="stream">The stream containing the data.</param>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="token">Cancellation token.</param>
-        /// <returns>SyncResponse.</returns>
-        public async Task<SyncResponse> SendAndWait(Guid guid, int timeoutMs, long contentLength, Stream stream, Dictionary<string, object> metadata = null, CancellationToken token = default)
-        {
-            if (timeoutMs < 1) throw new ArgumentException("Timeout must be greater than zero.");
-            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanRead) throw new IOException("Cannot read from supplied stream.");
-
             MeshClient currClient = GetMeshClientByGuid(guid);
             if (currClient == null || currClient == default(MeshClient))
             {
-                SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.PeerNotFound, 0, null);
+                SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.PeerNotFound, Array.Empty<byte>());
                 return failed;
             }
-
-            return await SendAndWaitInternal(currClient, MessageTypeEnum.Data, timeoutMs, contentLength, stream, metadata, token).ConfigureAwait(false);
+            return await SendAndWaitInternal(currClient, MessageTypeEnum.Data, timeoutMs, data, metadata, token).ConfigureAwait(false);
         }
 
         #endregion
@@ -467,25 +397,7 @@
         public async Task<bool> Broadcast(byte[] data, Dictionary<string, object> metadata = null, CancellationToken token = default)
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data)); 
-            MemoryStream stream = new MemoryStream(data);
-            long contentLength = data.Length; 
-            stream.Seek(0, SeekOrigin.Begin);
-            return await BroadcastInternal(MessageTypeEnum.Data, contentLength, stream, metadata, token).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Broadcast stream data to all nodes asynchronously.
-        /// </summary>
-        /// <param name="contentLength">The number of bytes to read from the stream.</param>
-        /// <param name="stream">The stream containing the data.</param>
-        /// <param name="metadata">Metadata to include with the message.</param>
-        /// <param name="token">Cancellation token.</param>
-        /// <returns>True if successful.</returns>
-        public async Task<bool> Broadcast(long contentLength, Stream stream, Dictionary<string, object> metadata = null, CancellationToken token = default)
-        {
-            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero bytes.");
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            return await BroadcastInternal(MessageTypeEnum.Data, contentLength, stream, metadata, token).ConfigureAwait(false);
+            return await BroadcastInternal(MessageTypeEnum.Data, data, metadata, token).ConfigureAwait(false);
         }
 
         #endregion
@@ -527,7 +439,7 @@
         }
          
         #endregion
-
+            
         #region Private-MeshServer-Callbacks
          
         private void MeshServerClientConnected(object sender, ClientConnectionEventArgs args) 
@@ -538,16 +450,14 @@
         {  
         }
          
-        private async void MeshServerStreamReceived(object sender, MessageReceivedEventArgs args)
+        private void MeshServerMessageReceived(object sender, MeshMessageReceivedEventArgs args)
         {
             try
             {
-                Message currMsg = new Message(args.DataStream, _Settings.StreamBufferSize); 
-
-                MeshPeer currPeer = GetPeerByGuid(currMsg.SourceGuid);
+                MeshPeer currPeer = GetPeerByGuid(args.SourceGuid);
                 if (currPeer == null || currPeer == default(MeshPeer))
                 {
-                    Logger?.Invoke(_Header + "unsolicited message from " + currMsg.SourceIpPort + ", no peer found");
+                    Logger?.Invoke(_Header + "unsolicited message from " + args.SourceIpPort + ", no peer found");
                     return;
                 }
 
@@ -558,38 +468,34 @@
                     return;
                 }
 
-                MessageReceivedEventArgs payloadArgs = new MessageReceivedEventArgs(currMsg);
-
-                if (currMsg.SyncRequest)
+                if (args.SyncRequest)
                 {
                     if (SyncMessageReceived != null)
                     {
-                        SyncResponse syncResponse = await SyncMessageReceived(payloadArgs);
-                        syncResponse.DataStream.Seek(0, SeekOrigin.Begin); 
-                        Message responseMsg = new Message(_Serializer, _IpPort, currPeer.IpPort, currMsg.TimeoutMs, false, false, true, currMsg.Type, currMsg.Metadata, syncResponse.ContentLength, syncResponse.DataStream);
-                        responseMsg.Id = currMsg.Id;  
-                        await SendSyncResponseInternal(currClient, responseMsg);
+                        SyncResponse syncResponse = SyncMessageReceived(args).Result;
+                        Message responseMsg = new Message(_IpPort, currPeer.IpPort, args.TimeoutMs, false, false, true, args.Type, args.Metadata, syncResponse.Data);
+                        responseMsg.Id = args.Id;  
+                        SendSyncResponseInternal(currClient, responseMsg).Wait();
                     }
                     else
                     {
                         Logger?.Invoke(_Header + "no handler configured for sync requests, ignoring");
                     }
                 }
-                else if (currMsg.SyncResponse)
+                else if (args.SyncResponse)
                 {
-                    // add to sync responses    
-                    currMsg.DataStream.Seek(0, SeekOrigin.Begin);
-                    PendingResponse pendingResp = new PendingResponse(DateTime.Now.AddMilliseconds(currMsg.TimeoutMs), currMsg);
-                    _PendingResponses.TryAdd(currMsg.Id, pendingResp); 
+                    // add to sync responses
+                    PendingResponse pendingResp = new PendingResponse(DateTime.Now.AddMilliseconds(args.TimeoutMs), new Message(args));
+                    _PendingResponses.TryAdd(args.Id, pendingResp); 
                 }
                 else
                 {
-                    MessageReceived?.Invoke(this, payloadArgs);
+                    MessageReceived?.Invoke(this, args);
                 }
             }
             catch (Exception e)
             {
-                Logger?.Invoke(_Header + "StreamReceived exception: " + Environment.NewLine + _Serializer.SerializeJson(e, true));
+                Logger?.Invoke(_Header + "StreamReceived exception: " + Environment.NewLine + SerializationHelper.SerializeJson(e, true));
             } 
         }
 
@@ -597,69 +503,22 @@
 
         #region Private-Message-Methods
          
-        private async Task<bool> SendInternal(MeshClient client, MessageTypeEnum msgType, long contentLength, Stream stream, Dictionary<string, object> metadata, CancellationToken token = default)
+        private async Task<bool> SendInternal(MeshClient client, MessageTypeEnum msgType, byte[] data, Dictionary<string, object> metadata, CancellationToken token = default)
         {
             if (client == null) throw new ArgumentNullException(nameof(client));
+            if (data == null) data = Array.Empty<byte>();
 
-            Message msg = new Message(_Serializer, _IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, contentLength, stream);
-            byte[] headerBytes = msg.ToHeaderBytes();  
-            long totalLen = headerBytes.Length;
+            Message msg = new Message(_IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, data);
+            metadata = AppendHeaders(metadata, msg.Headers);
 
-            MemoryStream ms = new MemoryStream();
-            await ms.WriteAsync(headerBytes, 0, headerBytes.Length, token).ConfigureAwait(false);
-
-            if (contentLength > 0 && stream != null && stream.CanRead)
-            {
-                if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
-
-                int bytesRead = 0;
-                long bytesRemaining = contentLength;
-                byte[] buffer = new byte[_Settings.StreamBufferSize];
-
-                while (bytesRemaining > 0)
-                {
-                    bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
-                    if (bytesRead > 0)
-                    {
-                        await ms.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
-                        bytesRemaining -= bytesRead;
-                        totalLen += bytesRead;
-                    }
-                }
-            }
-
-            ms.Seek(0, SeekOrigin.Begin); 
-            return await client.SendAsync(totalLen, ms).ConfigureAwait(false);
+            return await client.Send(data, metadata, token).ConfigureAwait(false);
         }
 
-        private async Task<bool> BroadcastInternal(MessageTypeEnum msgType, long contentLength, Stream stream, Dictionary<string, object> metadata, CancellationToken token = default)
-        { 
-            Message msg = new Message(_Serializer, _IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, contentLength, stream); 
-            byte[] headerBytes = msg.ToHeaderBytes();
-            long totalLen = headerBytes.Length;
-
-            MemoryStream ms = new MemoryStream();
-            await ms.WriteAsync(headerBytes, 0, headerBytes.Length, token).ConfigureAwait(false);
-
-            if (contentLength > 0 && stream != null && stream.CanRead)
-            {
-                if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
-
-                int bytesRead = 0;
-                long bytesRemaining = contentLength;
-                byte[] buffer = new byte[_Settings.StreamBufferSize];
-
-                while (bytesRemaining > 0)
-                {
-                    bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
-                    if (bytesRead > 0)
-                    {
-                        await ms.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
-                        bytesRemaining -= bytesRead;
-                        totalLen += bytesRead;
-                    }
-                }
-            }
+        private async Task<bool> BroadcastInternal(MessageTypeEnum msgType, byte[] data, Dictionary<string, object> metadata, CancellationToken token = default)
+        {
+            if (data == null) data = Array.Empty<byte>();
+            Message msg = new Message(_IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, data);
+            metadata = AppendHeaders(metadata, msg.Headers);
 
             bool success = true;
             List<MeshClient> currClients = null;
@@ -671,8 +530,7 @@
              
             foreach (MeshClient currClient in _Clients)
             {
-                ms.Seek(0, SeekOrigin.Begin);
-                success = success && await currClient.SendAsync(totalLen, ms, token).ConfigureAwait(false);
+                success = success && await currClient.Send(data, metadata, token).ConfigureAwait(false);
             } 
 
             return success; 
@@ -685,43 +543,23 @@
             return _SyncRequests.TryAdd(id, DateTime.Now.AddMilliseconds(timeoutMs));
         }
          
-        private async Task<SyncResponse> SendAndWaitInternal(MeshClient client, MessageTypeEnum msgType, int timeoutMs, long contentLength, Stream stream, Dictionary<string, object> metadata, CancellationToken token = default)
-        { 
-            Message msg = new Message(_Serializer, _IpPort, client.PeerNode.IpPort, timeoutMs, false, true, false, msgType, metadata, contentLength, stream);
-            byte[] headers = msg.ToHeaderBytes();
+        private async Task<SyncResponse> SendAndWaitInternal(MeshClient client, MessageTypeEnum msgType, int timeoutMs, byte[] data, Dictionary<string, object> metadata, CancellationToken token = default)
+        {
+            if (data == null) data = Array.Empty<byte>();
+            Message msg = new Message(_IpPort, client.PeerNode.IpPort, timeoutMs, false, true, false, msgType, metadata, data);
+            metadata = AppendHeaders(metadata, msg.Headers);
 
             try
             {
                 if (!AddSyncRequest(msg.Id, timeoutMs))
                 {
-                    SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Failed, 0, null);
+                    SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Failed, Array.Empty<byte>());
                     return failed;
                 }
 
-                MemoryStream ms = new MemoryStream();
-                await ms.WriteAsync(headers, 0, headers.Length, token).ConfigureAwait(false);
-
-                long totalLength = headers.Length;
-                int bytesRead = 0;
-                long bytesRemaining = contentLength;
-                byte[] buffer = new byte[_Settings.StreamBufferSize];
-
-                while (bytesRemaining > 0)
+                if (!await client.Send(data, metadata, token).ConfigureAwait(false))
                 {
-                    bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
-                    if (bytesRead > 0)
-                    {
-                        bytesRemaining -= bytesRead;
-                        totalLength += bytesRead;
-                        await ms.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
-                    }
-                }
-                
-                ms.Seek(0, SeekOrigin.Begin);
-
-                if (!await client.SendAsync(totalLength, ms, token).ConfigureAwait(false))
-                {
-                    SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.SendFailure, 0, null);
+                    SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.SendFailure, Array.Empty<byte>());
                     return failed;
                 }
 
@@ -729,7 +567,7 @@
             }
             catch (Exception e)
             {
-                SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Failed, 0, null);
+                SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Failed, Array.Empty<byte>());
                 failed.Exception = e;
                 return failed;
             }
@@ -742,30 +580,10 @@
 
         private async Task<bool> SendSyncResponseInternal(MeshClient client, Message msg, CancellationToken token = default)
         {
-            if (msg.DataStream != null)
+            if (msg.Data != null)
             {
-                byte[] headers = msg.ToHeaderBytes();
-                MemoryStream ms = new MemoryStream();
-                await ms.WriteAsync(headers, 0, headers.Length, token).ConfigureAwait(false);
-
-                long totalLength = headers.Length;
-                long bytesRemaining = msg.ContentLength;
-                int bytesRead = 0;
-                byte[] buffer = new byte[_Settings.StreamBufferSize];
-
-                while (bytesRemaining > 0)
-                {
-                    bytesRead = await msg.DataStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
-                    if (bytesRead > 0)
-                    {
-                        bytesRemaining -= bytesRead;
-                        totalLength += bytesRead;
-                        await ms.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
-                    }
-                }
-
-                ms.Seek(0, SeekOrigin.Begin);
-                return await client.SendAsync(totalLength, ms, token).ConfigureAwait(false);
+                Dictionary<string, object> metadata = AppendHeaders(new Dictionary<string, object>(), msg.Metadata);
+                return await client.Send(msg.Data, metadata, token).ConfigureAwait(false);
             }
             else
             {
@@ -787,7 +605,7 @@
                 {
                     if (!_PendingResponses.TryGetValue(id, out pendingResp))
                     {
-                        SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Failed, 0, null);
+                        SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Failed, Array.Empty<byte>());
                         return failed;
                     }
 
@@ -796,11 +614,11 @@
 
                     if (DateTime.Now > expiration)
                     {
-                        SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Expired, 0, null);
+                        SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Expired, Array.Empty<byte>());
                         return failed; 
                     }
 
-                    SyncResponse success = new SyncResponse(SyncResponseStatusEnum.Success, respMsg.ContentLength, respMsg.DataStream);
+                    SyncResponse success = new SyncResponse(SyncResponseStatusEnum.Success, respMsg.Data);
                     return success;
                 }
 
@@ -810,7 +628,7 @@
                 {
                     _PendingResponses.TryRemove(id, out pendingResp);
 
-                    SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Expired, 0, null);
+                    SyncResponse failed = new SyncResponse(SyncResponseStatusEnum.Expired, Array.Empty<byte>());
                     return failed;
                 }
 
@@ -852,6 +670,19 @@
                 }
             }
             return ret;
+        }
+
+        private Dictionary<string, object> AppendHeaders(Dictionary<string, object> original, Dictionary<string, object> append)
+        {
+            if (original == null) original = new Dictionary<string, object>();
+            if (append == null) return original;
+
+            foreach (KeyValuePair<string, object> kvp in append)
+            {
+                original.Add(kvp.Key, kvp.Value);
+            }
+
+            return original;
         }
 
         #endregion
