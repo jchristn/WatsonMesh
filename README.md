@@ -6,18 +6,24 @@
 
 A simple C# mesh networking library using TCP (with or without SSL) with integrated framing for reliable transmission and receipt of data amongst multiple nodes.
 
-## New in v4.0.x
+## New in v5.0.x
 
-- Dependency update and changes (thank you @cee-sharp)
-- Constructor fix (thank you @lehrbua)
+- Update to latest WatsonTcp
+- Migrated from string IP:port methods to GUID
+- Migrated to async methods
+- Rename enums, add JSON converter details
+- Consistent logging headers
+- Usings inside of namespace
+- Async callback for SyncRequest
+- Cancellation token and ```ConfigureAwait```
 
 ## What is Watson Mesh?
 
-Watson Mesh is a simple library for mesh networking.  Instantiate the ```WatsonMesh``` class after defining the mesh network settings in ```MeshSettings``` and the local server configuration in ```Peer```.  Then, add ```Peer``` objects representing the other nodes in the network.  Each ```WatsonMesh``` node runs a local server and one client for each defined ```Peer```.  By default, a node will attempt to reconnect to each of the configured peers should the connection become severed.  
+Watson Mesh is a simple library for mesh networking (all nodes have connections to one another).  Instantiate the ```WatsonMesh``` class after defining the mesh network settings in ```MeshSettings```.  Then, add ```MeshPeer``` objects representing the other nodes in the network.  Each ```WatsonMesh``` node runs a local server and one client for each defined ```MeshPeer```.  By default, a node will attempt to reconnect to each of the configured peers should the connection become severed.  
 
 The network ```IsHealthy``` from a node's perspective if it has established outbound connections to each of its defined peers.  Thus, the health of the network is determined by each node from its own viewpoint.  The state of inbound connections from other nodes is not considered, but rather its ability to reach out to its peers.
   
-Under the hood, ```WatsonMesh``` relies on ```WatsonTcp``` (see https://github.com/jchristn/WatsonTcp) for framing and reliable delivery.
+Under the hood, ```WatsonMesh``` relies on ```WatsonTcp``` (see https://github.com/dotnet/WatsonTcp) for framing and reliable delivery.
 
 ## Test App
 
@@ -49,7 +55,7 @@ The following example shows a simple example using byte arrays and without SSL. 
 using WatsonMesh; 
 
 // initialize
-MeshNode mesh = new MeshNode("127.0.0.1", 8000);
+MeshNode mesh = new MeshNode(new MeshSettings(), "127.0.0.1", 8000);
 
 // define callbacks and start
 mesh.PeerConnected += PeerConnected;
@@ -59,48 +65,38 @@ mesh.SyncMessageReceived = SyncMessageReceived;
 mesh.Start();
 
 // add peers 
-mesh.Add(new Peer("127.0.0.1:8001"));
-mesh.Add(new Peer("127.0.0.1:8002")); 
+mesh.Add(new Peer([guid], "127.0.0.1:8001"));
+mesh.Add(new Peer([guid], "127.0.0.1:8002")); 
 
-// implement callbacks
+// implement events
 
 static void PeerConnected(object sender, ServerConnectionEventArgs args) 
 {
-    Console.WriteLine("Peer " + args.PeerNode.ToString() + " connected!");
+    Console.WriteLine("Peer " + args.PeerNode.ToString() + " connected");
 }
 
 static void PeerDisconnected(object sender, ServerConnectionEventArgs args) 
 {
-    Console.WriteLine("Peer " + args.PeerNode.ToString() + " disconnected!");
+    Console.WriteLine("Peer " + args.PeerNode.ToString() + " disconnected");
 }
 
-static void MessageReceived(object sender, MessageReceivedEventArgs args) 
+static void MessageReceived(object sender, MeshMessageReceivedEventArgs args) 
 {
 	Console.WriteLine("Message from " + args.SourceIpPort + ": " + Encoding.UTF8.GetBytes(args.Data));
 }
 
-static SyncResponse SyncMessageReceived(MessageReceivedEventArgs args) 
+static SyncResponse SyncMessageReceived(MeshMessageReceivedEventArgs args) 
 {
 	Console.WriteLine("Message from " + args.SourceIpPort + ": " + Encoding.UTF8.GetBytes(args.Data));
 	return new SyncResponse(SyncResponseStatus.Success, "Hello back at you!");
 }
 
 // send messages 
-if (!mesh.Send("127.0.0.1:8001", "Hello, world!")) { // handle errors }
-if (!mesh.Broadcast("Hello, world!")) { // handle errors }
-SyncResponse resp = mesh.SendSync("127.0.0.1:8001", 5000, "Hello, world!");
+if (!await mesh.Send([guid], "Hello, world!")) { // handle errors }
+if (!await mesh.Broadcast("Hello, world!")) { // handle errors }
+SyncResponse resp = await mesh.SendAndWait([guid], 5000, "Hello, world!");
 ```
 
-## Running under Mono
-
-The preferred framework for WatsonMesh for multiplatform environments is .NET Core.  However, the project works well in Mono environments with hte .NET Frameworks to the extent that we have tested it. It is recommended that when running under Mono, you execute the containing EXE using --server and after using the Mono Ahead-of-Time Compiler (AOT).  Note that TLS 1.2 is hard-coded, which may need to be downgraded to TLS in Mono environments.
-
-NOTE: Windows accepts '0.0.0.0' as an IP address representing any interface.  On Mac and Linux you must be specified ('127.0.0.1' is also acceptable, but '0.0.0.0' is NOT).
-```
-mono --aot=nrgctx-trampolines=8096,nimt-trampolines=8096,ntrampolines=4048 --server myapp.exe
-mono --server myapp.exe
-```
- 
 ## Version History
 
 Refer to CHANGELOG.md for a list of changes by version.

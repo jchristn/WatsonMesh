@@ -132,11 +132,13 @@
             Headers.
             </summary>
         </member>
-        <member name="M:WatsonMesh.MeshMessage.#ctor(System.String,System.String,System.Nullable{System.Int32},System.Boolean,System.Boolean,System.Boolean,WatsonMesh.MessageTypeEnum,System.Collections.Generic.Dictionary{System.String,System.Object},System.Byte[])">
+        <member name="M:WatsonMesh.MeshMessage.#ctor(System.Guid,System.Guid,System.String,System.String,System.Nullable{System.Int32},System.Boolean,System.Boolean,System.Boolean,WatsonMesh.MessageTypeEnum,System.Collections.Generic.Dictionary{System.String,System.Object},System.Byte[])">
             <summary>
             Instantiate.
             </summary>
+            <param name="sourceGuid">Source GUID.</param>
             <param name="sourceIpPort">Source IP:port.</param>
+            <param name="destGuid">Destination GUID.</param>
             <param name="destIpPort">Destination IP:port.</param>
             <param name="timeoutMs">Timeout in ms.</param>
             <param name="isBroadcast">Flag to indicate if message is broadcast.</param>

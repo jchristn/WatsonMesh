@@ -18,6 +18,7 @@ namespace TestNetCore
         static Guid _Guid = default(Guid);
         static MeshSettings _Settings; 
         static MeshNode _Mesh;
+        static Dictionary<Guid, string> _Peers = new Dictionary<Guid, string>();
 
         static bool _RunForever = true;
 
@@ -25,8 +26,17 @@ namespace TestNetCore
         {
             if (args != null && args.Length > 0)
             { 
-                ParseArguments(args, out _Ip, out _Port, out _Guid);
+                ParseArguments(args, out _Ip, out _Port, out _Guid, out _Peers);
                 _IpPort = _Ip + ":" + _Port;
+
+                Console.WriteLine("");
+                Console.WriteLine("Using arguments:");
+                Console.WriteLine("  IP      : " + _Ip);
+                Console.WriteLine("  Port    : " + _Port);
+                Console.WriteLine("  IP:port : " + _IpPort);
+                Console.WriteLine("  GUID    : " + _Guid.ToString());
+                Console.WriteLine("  Peers   : " + _Peers.Count);
+                Console.WriteLine("");
             }
             else
             {
@@ -43,7 +53,7 @@ namespace TestNetCore
             _Settings.ReconnectIntervalMs = 1000;
             _Settings.Guid = _Guid;
 
-            _Mesh = new MeshNode(new MeshSettings(), _Ip, _Port);
+            _Mesh = new MeshNode(_Settings, _Ip, _Port);
             _Mesh.PeerConnected += PeerConnected;
             _Mesh.PeerDisconnected += PeerDisconnected;
             _Mesh.MessageReceived += MessageReceived;
@@ -51,6 +61,14 @@ namespace TestNetCore
             _Mesh.Logger = Logger;
 
             _Mesh.Start();
+
+            if (_Peers != null && _Peers.Count > 0)
+            {
+                foreach (KeyValuePair<Guid, string> peer in _Peers)
+                {
+                    _Mesh.Add(new MeshPeer(peer.Key, peer.Value));
+                }
+            }
 
             while (_RunForever)
             {
@@ -144,6 +162,7 @@ namespace TestNetCore
 
         static void Menu()
         {
+            Console.WriteLine("");
             Console.WriteLine("Available commands:");
             Console.WriteLine("  ?             help, this menu");
             Console.WriteLine("  cls           clear the screen");
@@ -159,13 +178,15 @@ namespace TestNetCore
             Console.WriteLine("  bcast         send a message to all peers");
             Console.WriteLine("  health        display if the mesh is healthy");
             Console.WriteLine("  nodehealth    display if a connection to a peer is healthy");
+            Console.WriteLine("");
         }
         
-        static void ParseArguments(string[] args, out string ip, out int port, out Guid guid)
+        static void ParseArguments(string[] args, out string ip, out int port, out Guid guid, out Dictionary<Guid, string> peers)
         {
             ip = null;
             port = -1;
             guid = default(Guid);
+            peers = new Dictionary<Guid, string>();
 
             if (args != null && args.Length > 0)
             { 
@@ -188,6 +209,17 @@ namespace TestNetCore
                         if (!String.IsNullOrEmpty(val))
                         {
                             guid = Guid.Parse(val);
+                        }
+                    }
+                    else if (curr.StartsWith("-peer="))
+                    {
+                        string val = curr.Replace("-peer=", "");
+                        if (!String.IsNullOrEmpty(val))
+                        {
+                            string[] parts = val.Split('/');
+                            if (parts == null) throw new ArgumentException("The supplied peer must be of the form guid/ipport");
+                            if (parts.Length != 2) throw new ArgumentException("The supplied peer must be of the form guid/ipport");
+                            peers.Add(Guid.Parse(parts[0]), parts[1]);
                         }
                     }
                 }
@@ -303,14 +335,13 @@ namespace TestNetCore
             Console.WriteLine("Peer " + args.PeerNode.Guid + " " + args.PeerNode.IpPort + " disconnected"); 
         }
          
-        static void MessageReceived(object sender, MeshMessageReceivedEventArgs args) 
+        static void MessageReceived(object sender, MeshMessageReceivedEventArgs args)
         {
             string msg = "";
             if (args.IsBroadcast) msg = "[bcast] ";
-            else if (args.SyncRequest) msg = "[syncreq] ";
-            else if (args.SyncResponse) msg = "[syncresp] ";
 
-            msg += args.SourceIpPort + ": " + Encoding.UTF8.GetString(args.Data);
+            Console.WriteLine(msg + args.SourceGuid + " " + args.SourceIpPort + ": " + Encoding.UTF8.GetString(args.Data));
+
             if (args.Metadata != null && args.Metadata.Count > 0)
             {
                 Console.WriteLine("Metadata:");
@@ -325,7 +356,7 @@ namespace TestNetCore
         static async Task<SyncResponse> SyncMessageReceived(MeshMessageReceivedEventArgs args)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            Console.WriteLine("[sync] " + args.SourceIpPort + ": " + Encoding.UTF8.GetString(args.Data));
+            Console.WriteLine("[sync] " + args.SourceGuid + " " + args.SourceIpPort + ": " + Encoding.UTF8.GetString(args.Data));
             if (args.Metadata != null && args.Metadata.Count > 0)
             {
                 Console.WriteLine("Metadata:");
@@ -356,88 +387,6 @@ namespace TestNetCore
                 port = Convert.ToInt32(ipPort.Substring(colonIndex + 1));
             }
         }
-
-        static byte[] ReadStream(long contentLength, Stream stream)
-        {
-            if (contentLength < 1) throw new ArgumentException("Content length must be greater than zero.");
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
-
-            int bytesRead = 0;
-            long bytesRemaining = contentLength;
-            byte[] buffer = new byte[65536];
-            byte[] ret = null;
-
-            while (bytesRemaining > 0)
-            {
-                bytesRead = stream.Read(buffer, 0, buffer.Length);
-                if (bytesRead > 0)
-                {
-                    if (bytesRead == buffer.Length)
-                    {
-                        ret = AppendBytes(ret, buffer);
-                    }
-                    else
-                    {
-                        byte[] temp = new byte[bytesRead];
-                        Buffer.BlockCopy(buffer, 0, temp, 0, bytesRead);
-                        ret = AppendBytes(ret, temp);
-                    }
-                    bytesRemaining -= bytesRead;
-                }
-            }
-
-            return ret;
-        }
-
-        static byte[] ReadStream(Stream stream)
-        {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
-
-            int bytesRead = 0;
-            byte[] buffer = new byte[65536];
-            byte[] ret = null;
-
-            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                if (bytesRead == buffer.Length)
-                {
-                    ret = AppendBytes(ret, buffer);
-                }
-                else
-                {
-                    byte[] temp = new byte[bytesRead];
-                    Buffer.BlockCopy(buffer, 0, temp, 0, bytesRead);
-                    ret = AppendBytes(ret, buffer);
-                }
-            }
-
-            return ret;
-        }
-
-        static byte[] AppendBytes(byte[] head, byte[] tail)
-        {
-            byte[] ret;
-
-            if (head == null || head.Length == 0)
-            {
-                if (tail == null || tail.Length == 0) return null;
-
-                ret = new byte[tail.Length];
-                Buffer.BlockCopy(tail, 0, ret, 0, tail.Length);
-                return ret;
-            }
-            else
-            {
-                if (tail == null || tail.Length == 0) return head;
-
-                ret = new byte[head.Length + tail.Length];
-                Buffer.BlockCopy(head, 0, ret, 0, head.Length);
-                Buffer.BlockCopy(tail, 0, ret, head.Length, tail.Length);
-                return ret;
-            }
-        } 
 
         static void Logger(string msg)
         {

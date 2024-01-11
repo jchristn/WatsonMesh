@@ -457,14 +457,18 @@
                 MeshPeer currPeer = GetPeerByGuid(args.SourceGuid);
                 if (currPeer == null || currPeer == default(MeshPeer))
                 {
-                    Logger?.Invoke(_Header + "unsolicited message from " + args.SourceIpPort + ", no peer found");
+                    Logger?.Invoke(
+                        _Header + "unsolicited message from " + args.SourceGuid + " " + args.SourceIpPort + ", no peer found" 
+                        + SerializationHelper.SerializeJson(args, true));
                     return;
                 }
 
                 MeshClient currClient = GetMeshClientByGuid(currPeer.Guid);
                 if (currClient == null || currClient == default(MeshClient))
                 {
-                    Logger?.Invoke(_Header + "unable to find client for peer " + currPeer.IpPort);
+                    Logger?.Invoke(
+                        _Header + "unable to find client for peer " + currPeer.IpPort
+                        + SerializationHelper.SerializeJson(args, true));
                     return;
                 }
 
@@ -473,7 +477,16 @@
                     if (SyncMessageReceived != null)
                     {
                         SyncResponse syncResponse = SyncMessageReceived(args).Result;
-                        MeshMessage responseMsg = new MeshMessage(_IpPort, currPeer.IpPort, args.TimeoutMs, false, false, true, args.Type, args.Metadata, syncResponse.Data);
+                        MeshMessage responseMsg = new MeshMessage(
+                            _Settings.Guid,
+                            currPeer.Guid,
+                            _IpPort, 
+                            currPeer.IpPort, 
+                            args.TimeoutMs, 
+                            false, false, true, 
+                            args.Type, 
+                            args.Metadata, 
+                            syncResponse.Data);
                         responseMsg.Id = args.Id;  
                         SendSyncResponseInternal(currClient, responseMsg).Wait();
                     }
@@ -508,16 +521,33 @@
             if (client == null) throw new ArgumentNullException(nameof(client));
             if (data == null) data = Array.Empty<byte>();
 
-            MeshMessage msg = new MeshMessage(_IpPort, client.PeerNode.IpPort, 0, false, false, false, msgType, metadata, data);
+            MeshMessage msg = new MeshMessage(
+                _Settings.Guid,
+                client.PeerNode.Guid,
+                _IpPort, 
+                client.PeerNode.IpPort, 
+                0, 
+                false, false, false, 
+                msgType, 
+                metadata, 
+                data);
             metadata = AppendHeaders(metadata, msg.Headers);
-
             return await client.Send(data, metadata, token).ConfigureAwait(false);
         }
 
         private async Task<bool> BroadcastInternal(MessageTypeEnum msgType, byte[] data, Dictionary<string, object> metadata, CancellationToken token = default)
         {
             if (data == null) data = Array.Empty<byte>();
-            MeshMessage msg = new MeshMessage(_IpPort, "0.0.0.0:0", 0, true, false, false, msgType, metadata, data);
+            MeshMessage msg = new MeshMessage(
+                _Settings.Guid,
+                default(Guid),
+                _IpPort, 
+                "0.0.0.0:0", 
+                0, 
+                true, false, false, 
+                msgType, 
+                metadata, 
+                data);
             metadata = AppendHeaders(metadata, msg.Headers);
 
             bool success = true;
@@ -530,6 +560,7 @@
              
             foreach (MeshClient currClient in _Clients)
             {
+                msg.DestinationGuid = currClient.PeerNode.Guid;
                 success = success && await currClient.Send(data, metadata, token).ConfigureAwait(false);
             } 
 
@@ -546,7 +577,16 @@
         private async Task<SyncResponse> SendAndWaitInternal(MeshClient client, MessageTypeEnum msgType, int timeoutMs, byte[] data, Dictionary<string, object> metadata, CancellationToken token = default)
         {
             if (data == null) data = Array.Empty<byte>();
-            MeshMessage msg = new MeshMessage(_IpPort, client.PeerNode.IpPort, timeoutMs, false, true, false, msgType, metadata, data);
+            MeshMessage msg = new MeshMessage(
+                _Settings.Guid,
+                client.PeerNode.Guid,
+                _IpPort, 
+                client.PeerNode.IpPort, 
+                timeoutMs, 
+                false, true, false, 
+                msgType, 
+                metadata, 
+                data);
             metadata = AppendHeaders(metadata, msg.Headers);
 
             try

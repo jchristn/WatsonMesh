@@ -171,9 +171,7 @@
         private void MeshServerMessageReceived(object sender, WatsonTcp.MessageReceivedEventArgs args)
         {
             Logger?.Invoke(_Header + "message from client " + args.Client.Guid + " " + args.Client.IpPort + ": " + args.Data.Length + " bytes");
-
             MeshMessageReceivedEventArgs msg = new MeshMessageReceivedEventArgs(args, _IpPort, _Settings.Guid);
-
             MessageReceived?.Invoke(this, msg);
         }
 

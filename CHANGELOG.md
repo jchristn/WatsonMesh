@@ -2,11 +2,23 @@
 
 ## Current Version
 
-v4.0.0
+v5.0.x
 
-- Dependency update and changes (thank you @cee-sharp)
+- Update to latest WatsonTcp
+- Migrated from string IP:port methods to GUID
+- Migrated to async methods
+- Rename enums, add JSON converter details
+- Consistent logging headers
+- Usings inside of namespace
+- Async callback for SyncRequest
+- Cancellation token and ```ConfigureAwait```
 
 ## Previous Versions
+
+v4.0.x
+
+- Dependency update and changes (thank you @cee-sharp)
+- Constructor fix (thank you @lehrbua)
 
 v3.1.0
 

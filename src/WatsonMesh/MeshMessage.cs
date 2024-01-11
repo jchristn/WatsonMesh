@@ -118,7 +118,9 @@
         /// <summary>
         /// Instantiate.
         /// </summary>
+        /// <param name="sourceGuid">Source GUID.</param>
         /// <param name="sourceIpPort">Source IP:port.</param>
+        /// <param name="destGuid">Destination GUID.</param>
         /// <param name="destIpPort">Destination IP:port.</param>
         /// <param name="timeoutMs">Timeout in ms.</param>
         /// <param name="isBroadcast">Flag to indicate if message is broadcast.</param>
@@ -128,6 +130,8 @@
         /// <param name="metadata">Metadata.</param>
         /// <param name="data">Data.</param>
         public MeshMessage(
+            Guid sourceGuid,
+            Guid destGuid,
             string sourceIpPort, 
             string destIpPort, 
             int? timeoutMs, 
@@ -154,7 +158,9 @@
                 TimeoutMs = Convert.ToInt32(timeoutMs);
             }
 
+            SourceGuid = sourceGuid;
             SourceIpPort = sourceIpPort;
+            DestinationGuid = destGuid;
             DestinationIpPort = destIpPort;
             Type = msgType;
 
