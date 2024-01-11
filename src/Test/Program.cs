@@ -94,6 +94,7 @@ namespace TestNetCore
 
                     case "list":
                         peers = _Mesh.GetPeers().ToList();
+                        Console.WriteLine("");
                         if (peers != null && peers.Count > 0)
                         {
                             Console.WriteLine("Configured peers: " + peers.Count);
@@ -103,10 +104,12 @@ namespace TestNetCore
                         {
                             Console.WriteLine("None");
                         }
+                        Console.WriteLine("");
                         break;
 
                     case "failed":
                         peers = _Mesh.GetDisconnectedPeers();
+                        Console.WriteLine("");
                         if (peers != null && peers.Count > 0)
                         {
                             Console.WriteLine("Failed peers: " + peers.Count);
@@ -116,6 +119,7 @@ namespace TestNetCore
                         {
                             Console.WriteLine("None");
                         }
+                        Console.WriteLine("");
                         break;
 
                     case "send":
@@ -366,7 +370,6 @@ namespace TestNetCore
                 }
             }
 
-            Console.WriteLine("");
             Console.WriteLine("Sending synchronous response...");
             string resp = "Thank you for your synchronous inquiry!";
             byte[] respData = Encoding.UTF8.GetBytes(resp);
